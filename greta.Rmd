@@ -6,62 +6,9 @@ output: html_document
 ---
 
 ```{r}
-library(greta) # remotes::install_github("greta-dev/greta")
 library(tidyverse)
-library(coda)
+library(greta) # remotes::install_github("greta-dev/greta")
 ```
-
-
-## Seeds example
-
-<http://www.openbugs.net/Examples/Seeds.html>
-
-```{r}
-
-
-seeds <- list(r = c(10, 23, 23, 26, 17, 5, 53, 55, 32, 46, 10, 8, 10, 8, 23, 0, 3, 22, 15, 32, 3),
-     n = c(39, 62, 81, 51, 39, 6, 74, 72, 51, 79, 13, 16, 30, 28, 45, 4, 12, 41, 30, 51, 7),
-     x1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-     x2 = c(0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
-     N = 21)
-
-x1 <- seeds$x1
-x2 <- seeds$x2
-x12 <- x1 * x2
-r <- as_data(seeds$r)
-n <- as_data(seeds$n)
-x1 <- as_data(x1)
-x2 <- as_data(x2)
-x12 <- as_data(x12)
-N <- seeds$N
-
-alpha0 <- normal(0, 1000)
-alpha1 <- normal(0, 1000)
-alpha2 <- normal(0, 1000)
-alpha12 <- normal(0, 1000)
-sigma <- uniform(0, 1000)
-
-b <- normal(0, sigma, dim = N)
-p <- ilogit(alpha0 + (alpha1 * x1) + (alpha2 * x2) + (alpha12 * x12) + b)
-
-distribution(r) <- binomial(n, p)
-m <- model(alpha0, alpha1, alpha2, alpha12, sigma)
-
-draws <- greta::mcmc(m, n_samples = 10000)
-````
-
-```{r}
-bayesplot::mcmc_trace(draws)
-```
-
-```{r}
-summary(draws)
-
-```
-
-
-
--------
 
 
 ```{r}
@@ -81,23 +28,32 @@ tibble(x_t, x_t1) %>% ggplot(aes(x_t, x_t1)) + geom_point()
 ```
 
 ```{r}
-r <- 0.05 #lognormal(0.05, .01)
-K <- 2 # lognormal(2, .01)
-Q <- lognormal(5, .1)
-H <- lognormal(0.38, 0.1)
-a <- lognormal(0.0233, 0.1)
+# constants
+r <- 0.05 
+K <- 2 
+Q <- 5
+# Priors
 
-sigma <- lognormal(0.01, 0.001)
-mean <- r * x_t * (1 - x_t / K)- a * x_t ^ Q / (x_t ^ Q + H ^ Q)
+H <- normal(0,  2 * 0.38)
+a <- uniform(0, 2 * 0.0233)
+sigma <- normal(0, 2 * 0.01)
+
+# Model
+mean <- r * x_t * (1 - x_t / K) - a * x_t ^ Q / (x_t ^ Q + H ^ Q)
 distribution(x_t1) <- normal(mean, sigma)
-m <- model(Q, H, a, sigma)
-
-
+m <- model(H, a, sigma)
 ```
 
 ```{r}
-draws <- mcmc(m, n_samples = 1000, chains = 4)
+draws <- mcmc(m, n_samples = 10000, warmup = 10000, chains = 4)
+```
+
+```{r}
 bayesplot::mcmc_trace(draws)
+```
+
+```{r}
+summary(draws)
 ```
 
 
