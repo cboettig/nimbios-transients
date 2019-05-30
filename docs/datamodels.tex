@@ -1,0 +1,85 @@
+\documentclass[11pt,letter]{article}
+\usepackage[top=1.00in, bottom=1.0in, left=1.1in, right=1.1in]{geometry}
+\renewcommand{\baselinestretch}{1.1}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{amsmath}
+
+\def\labelitemi{--}
+\parindent=0pt
+
+\begin{document}
+\bibliographystyle{/Users/Lizzie/Documents/EndnoteRelated/Bibtex/styles/besjournals}
+\renewcommand{\refname}{\CHead{}}
+
+\title{Collisions of phenomenological and dynamical models: Boom.}
+\author{Arroyo-Esquivel, Boettiger, Jiang, Reimer, Schraf, Wolkovich}
+\date{\today}
+\maketitle
+
+\begin{enumerate}
+\item Introduction
+\begin{enumerate} % Start paper with collisions of phenomenological and dynamical models ... Both statistical and dynamical are focused on stationary examples, here we show why that could be dangerous, especially in non-stationary systems. 
+\item Dynamical and statistical (phenomenological) models often focus on stationary dynamics 
+\item However, increasing evidence in dynamical systems and from empirical data suggest transient dynamics may be important
+\item Here's some motivating examples (why this might be useful)
+\begin{enumerate}
+\item Dynamical: Ghost, crawl-by and other exciting stuff
+\item Empirical: Regime shifts
+\item Empirical: Animal movement 
+\end{enumerate}
+\item Something about how Carl (and others?) have shown how to combine statistical and dynamical models in stationary systems, here we go non-stationary
+\end{enumerate}
+\item Methods
+\begin{enumerate}
+\item Dynamic models: We're using May 1976 model (others we discussed below) that we vary in:
+\begin{enumerate}
+\item Range of behaviour seen
+\item sigma (noise)
+\end{enumerate}
+\item Statistical methods (just a subset, we need to see data more to flesh this out)
+\begin{enumerate}
+\item Mechanistic (May 1976) % process model 
+\item Linear regression
+\item Changepoint
+\item Mixture 
+\item Hidden Markov % HMM 
+\item Mix phenomenological with mechanistic
+\end{enumerate}
+\item Compare models (aim is see how the models do at forecasting phase shifts, and maybe at identifying transients)
+\begin{enumerate}
+\item Cross-validation on given data
+\item Compare forecast to model predictions
+\end{enumerate}
+\end{enumerate}
+\item Results
+\begin{enumerate}
+\item We're going to get these. We think maybe mechanistic models should do well.
+\end{enumerate}
+\item Discussion
+\begin{enumerate}
+\item From all this, get to what you need to know about system (helping improve experiments)  ... If you can observe the system at transient dynamics you can perhaps learn more. 
+\item Transients can arise from inside the system (autonomous) ... so if you cannot find an exogenous factor, maybe it's autonomous to your system
+\end{enumerate}
+\end{enumerate}
+
+
+Other stuff we mentioned:
+\begin{enumerate}
+\item Challenges in predicting transient behaviour from real data.
+\item Coming up with new ways to describe phenomenon that perhaps could be better described with another method. For example, for animal movement data, where hidden Markov models are mostly used maybe you should be using dynamical models.
+\item Focusing on phase shifts ... understanding if the behaviour is transient versus phase shift versus observing asymptotic behaviour ... 
+\item If you don't think about transients (by going in with a preformed idea of a system of asymptotic or a mixture model) you can miss important transient behaviour which can be critical prediction.
+\item Are some dynamical models totally intractable statistically?
+\end{enumerate}
+
+
+Some other dynamical models with transients (that we dreamed of working on):
+\begin{enumerate}
+\item Linear (matrix model) 
+\item Chaotic
+\item Periodic (fast-slow)
+\end{enumerate}
+
+
+\end{document}
