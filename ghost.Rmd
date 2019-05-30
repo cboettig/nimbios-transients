@@ -1,9 +1,14 @@
 ---
-  title: "simulation & inference of transients"
+title: "simulation & inference of transients"
 author: "Carl Boettiger"
 date: "5/30/2019"
 output: html_document
 ---
+  
+```{r}
+library(tidyverse)
+library(nimble)
+```
   
 ```{r}
 p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .01, a = 0.023, N = 1e4)
@@ -69,6 +74,5 @@ df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 
 ```{r}
 df %>% filter(t< 1000) %>% ggplot(aes(t,x)) + geom_point()
-```
-```{r}
+df %>% write_csv("big.csv")
 ```
