@@ -1,0 +1,51 @@
+---
+title: "greta.Rmd"
+author: "Carl Boettiger"
+date: "5/30/2019"
+output: html_document
+---
+
+```{r}
+library(greta) # remotes::install_github("greta-dev/greta")
+library(tidyverse)
+```
+
+```{r}
+data <- read_csv("example_cb2.csv")
+data %>% ggplot(aes(t,x)) + geom_point()
+```
+
+
+```{r}
+x_t1 <- data$x
+x_t <- lag(data$x)[-1]
+x_t1 <- x_t1[1:(length(x_t1)-1)]
+
+
+
+tibble(x_t, x_t1) %>% ggplot(aes(x_t, x_t1)) + geom_point()
+```
+
+```{r}
+r <- 0.05 #lognormal(0.05, .01)
+K <- 2 # lognormal(2, .01)
+Q <- lognormal(5, .1)
+H <- lognormal(0.38, 0.1)
+a <- lognormal(0.0233, 0.1)
+
+sigma <- lognormal(0.01, 0.001)
+mean <- r * x_t * (1 - x_t / K)- a * x_t ^ Q / (x_t ^ Q + H ^ Q)
+distribution(x_t1) <- normal(mean, sigma)
+m <- model(Q, H, a, sigma)
+
+
+```
+
+```{r}
+draws <- mcmc(m, n_samples = 1000, chains = 4)
+bayesplot::mcmc_trace(draws)
+```
+
+
+
+
