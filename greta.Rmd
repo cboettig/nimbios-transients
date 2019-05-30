@@ -8,7 +8,61 @@ output: html_document
 ```{r}
 library(greta) # remotes::install_github("greta-dev/greta")
 library(tidyverse)
+library(coda)
 ```
+
+
+## Seeds example
+
+<http://www.openbugs.net/Examples/Seeds.html>
+
+```{r}
+
+
+seeds <- list(r = c(10, 23, 23, 26, 17, 5, 53, 55, 32, 46, 10, 8, 10, 8, 23, 0, 3, 22, 15, 32, 3),
+     n = c(39, 62, 81, 51, 39, 6, 74, 72, 51, 79, 13, 16, 30, 28, 45, 4, 12, 41, 30, 51, 7),
+     x1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+     x2 = c(0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
+     N = 21)
+
+x1 <- seeds$x1
+x2 <- seeds$x2
+x12 <- x1 * x2
+r <- as_data(seeds$r)
+n <- as_data(seeds$n)
+x1 <- as_data(x1)
+x2 <- as_data(x2)
+x12 <- as_data(x12)
+N <- seeds$N
+
+alpha0 <- normal(0, 1000)
+alpha1 <- normal(0, 1000)
+alpha2 <- normal(0, 1000)
+alpha12 <- normal(0, 1000)
+sigma <- uniform(0, 1000)
+
+b <- normal(0, sigma, dim = N)
+p <- ilogit(alpha0 + (alpha1 * x1) + (alpha2 * x2) + (alpha12 * x12) + b)
+
+distribution(r) <- binomial(n, p)
+m <- model(alpha0, alpha1, alpha2, alpha12, sigma)
+
+draws <- greta::mcmc(m, n_samples = 10000)
+````
+
+```{r}
+bayesplot::mcmc_trace(draws)
+```
+
+```{r}
+summary(draws)
+
+```
+
+
+
+-------
+
 
 ```{r}
 data <- read_csv("example_cb2.csv")
@@ -47,5 +101,6 @@ bayesplot::mcmc_trace(draws)
 ```
 
 
-
+```{r}
+```
 
