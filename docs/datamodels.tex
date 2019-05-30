@@ -20,13 +20,13 @@
 \begin{enumerate}
 \item Introduction
 \begin{enumerate} % Start paper with collisions of phenomenological and dynamical models ... Both statistical and dynamical are focused on stationary examples, here we show why that could be dangerous, especially in non-stationary systems. 
-\item Dynamical and statistical (phenomenological) models often focus on stationary dynamics 
+\item Dynamical (mechanistic) and statistical (phenomenological) models often focus on stationary dynamics 
 \item However, increasing evidence in dynamical systems and from empirical data suggest transient dynamics may be important
 \item Here's some motivating examples (why this might be useful)
 \begin{enumerate}
 \item Dynamical: Ghost, crawl-by and other exciting stuff
 \item Empirical: Regime shifts
-\item Empirical: Animal movement %comment here
+\item Empirical: Animal movement 
 \end{enumerate}
 \item Something about how Carl (and others?) have shown how to combine statistical and dynamical models in stationary systems, here we go non-stationary
 \end{enumerate}
@@ -37,18 +37,23 @@
 \item Range of behaviour seen
 \item sigma (noise)
 \end{enumerate}
+\item The model is:
+\[ dx/dt = x(1-x) - \frac{\delta x^q}{\gamma^q + x^q} \]
+where we nondimensionalized from the original May model using
+\[ \delta = \frac{a}{rK}, \quad \gamma = \frac{H}{K} \]
 \item Statistical methods (just a subset, we need to see data more to flesh this out)
 \begin{enumerate}
-\item Mechanistic (May 1976) % process model 
+\item Mechanistic (May 1976) % process/dynamical systems model 
 \item Linear regression
-\item Changepoint
-\item Mixture 
+\item Changepoint analysis
+\item Mixture model
 \item Hidden Markov % HMM 
-\item Mix phenomenological with mechanistic
+\item Mix of phenomenological with mechanistic
 \end{enumerate}
 \item Compare models (aim is see how the models do at forecasting phase shifts, and maybe at identifying transients)
+\item Could also compare how models respond to perturbations; either perturbations of the state variable, or of parameters
 \begin{enumerate}
-\item Cross-validation on given data
+\item Cross-validation (k-fold, or leave-one-out) on given data
 \item Compare forecast to model predictions
 \end{enumerate}
 \end{enumerate}
