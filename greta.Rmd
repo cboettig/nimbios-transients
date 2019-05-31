@@ -42,7 +42,7 @@ K <- uniform(0, 4)
 
 # Model
 mean <- r * x_t * (1 - x_t / K) - a * x_t ^ Q / (x_t ^ Q + H ^ Q)
-distribution(x_t1) <- normal(mean, sigma)
+distribution(x_t1) <- normal(mean, 1/sigma^2)
 m <- model(K)
 ```
 
