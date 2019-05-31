@@ -11,13 +11,13 @@ library(nimble)
 ```
   
 ```{r}
-constants <- list(r = .05, Q = 5, H = .38, sigma = .01, N = 1e3, a = 0.023)
-inits <- list(K = 2, x0 = 0.2)
+constants <- list(r = .05, Q = 5, H = .38, sigma = .01, N = 1e3, K = 2)
+inits <- list(a = 0.023, x0 = 0.2)
 ```
 
 ```{r}
 may  <- nimble::nimbleCode({
-  K ~ dlnorm(0,1)
+  a ~ dlnorm(0,1)
   x[1] <- x0
   for(t in 1:(N-1)){
     # Determinstic mean looks like standard R
@@ -36,7 +36,11 @@ set.seed(123)
 simulate(model, nodes = c("mu", "x", "y"))
 df <- tibble(t = seq_along(model$x), x = model$x)
 df %>% ggplot(aes(t,x)) + geom_point()
+
 ```
+
+
+
 ```{r}
 model$setData(list(x = model$x))
 model$initializeInfo()
@@ -78,9 +82,12 @@ system.time({
 
 ```{r}
 samples <- as.matrix(Cmcmc$mvSamples)
-draws <- as_data_frame(samples) %>% mutate(t = seq_along(K)) %>% gather(var,value, -t)
+draws <- as_data_frame(samples) %>% mutate(t = seq_along(a)) %>% gather(var,value, -t)
 ggplot(draws, aes(t, value)) + geom_line() + facet_wrap(~var, scales = "free")
 ```
+
+
+
 
 ```{r}
 matplot(samples, type = "l", lty = 1)
