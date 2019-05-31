@@ -4,7 +4,7 @@
 - Long-running replicate vs ensemble dynamics (Jody)
 - Perturbing the system multiple times
 
-- Likelihood / posterior distributions from a single trajectory vs from the ensemble 
+- Likelihood / posterior distributions from a single trajectory vs from the ensemble (Carl) 
 
 - How divergent can the posterior distribution of a parameter from a given model be when estimated from two different realizations of the same model? (Chris)
 
@@ -20,7 +20,7 @@
 
 ----
 
-Narrative
+Narrative for Reimer et al (2020)
 
 Motivation: 
 - change points
@@ -29,8 +29,6 @@ Motivation:
   - EWS prediction
   - mixture model
   - ...
-
-
 
 - model misspecification can be bad
 - even having the right model might not help if the data come from a transient
