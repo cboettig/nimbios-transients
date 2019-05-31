@@ -11,8 +11,10 @@ library(tidyverse)
 
 ```{r}
 constants <- list(N = 1e3, r = 0.05, K = 2,
-                  mu_a = 0, mu_sigma = 0, mu_Q = 0, mu_sigma = 0,
-                  sd_a = 1, sd_sigma = 1, sd_Q = 1, sd_sigma = 1)
+                  mu_a = 0, mu_sigma = 0, mu_Q = 0, mu_sigma = 0, mu_H = 0,
+                  sd_a = 1, sd_sigma = 1, sd_Q = 1, sd_sigma = 1, sd_H = 1
+                  )
+
 p <- list(H = 0.38, a = 0.023, sigma = 0.05, Q = 5, x0 = 0.2)
 growth <- function(x, p) x * constants$r * (1 - x / constants$K)
 consumption <- function(x, p) p$a * x^p$Q / (x^p$Q + p$H^p$Q)
@@ -44,10 +46,10 @@ library(nimble)
 # Define stochastic model in BUGS notation
 may  <- nimble::nimbleCode({
   x[1] <- x0
-  log(a) ~ dnorm(mu_a, sd_a)
-  log(H) ~ dnorm(mu_H, sd_H)
-  log(Q) ~ dnorm(mu_Q, sd_Q)
-  log(sigma) ~ dnorm(mu_sigma, sd_sigma)
+  a ~ dlnorm(mu_a, sd_a)
+  H ~ dlnorm(mu_H, sd_H)
+  Q ~ dlnorm(mu_Q, sd_Q)
+  sigma ~ dlnorm(mu_sigma, sd_sigma)
   for(t in 1:(N-1)){
     # Determinstic mean looks like standard R
     mu[t] <- x[t] + x[t] * r * (1 - x[t] / K)  - a * x[t] ^ Q / (x[t] ^ Q + H ^ Q)
@@ -62,7 +64,7 @@ cmodel <- compileNimble(model)
 
 ```{r simulate, cache = F}
 set.seed(123)
-cmodel$a <- p$a; cmodel$H <- p$H; cmodel$Q <- p$Q; cmodel$x0 <- p$x0; cmodel$sigma <- p$sigma
+#cmodel$a <- p$a; cmodel$H <- p$H; cmodel$Q <- p$Q; cmodel$x0 <- p$x0; cmodel$sigma <- p$sigma
 
 simulate(cmodel, nodes = c('mu', 'x'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
@@ -79,8 +81,8 @@ df %>% filter(t < 4000) %>% ggplot(aes(t, x)) + geom_line()
 system.time({
   mcmcConf <- configureMCMC(cmodel)
   mcmcConf$getMonitors()
-  mcmcConf$removeSampler(c("log_a", "log_H", "log_Q"))
-  mcmcConf$addSampler(target = c("log_a", "log_H", "log_Q"), type = 'RW_block')
+  mcmcConf$removeSampler(c("a", "H", "Q"))
+  mcmcConf$addSampler(target = c("a", "H", "Q"), type = 'RW_block')
   mcmcConf$getMonitors()
 })
 ```
