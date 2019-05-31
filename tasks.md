@@ -4,7 +4,7 @@
 - Long-running replicate vs ensemble dynamics (Jody)
 - Perturbing the system multiple times
 
-- Likelihood / posterior distributions from a single trajectory vs from the ensemble 
+- Likelihood / posterior distributions from a single trajectory vs from the ensemble (Henry)
 
 - How divergent can the posterior distribution of a parameter from a given model be when estimated from two different realizations of the same model? (Chris)
 
