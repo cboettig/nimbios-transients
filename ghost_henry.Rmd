@@ -1,0 +1,111 @@
+---
+title: "simulation & inference of transients"
+author: "Carl Boettiger"
+date: "5/30/2019"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+constants <- list(N = 1e3, r = 0.05, K = 2,
+                  mu_a = 0, mu_sigma = 0, mu_Q = 0, mu_sigma = 0,
+                  sd_a = 1, sd_sigma = 1, sd_Q = 1, sd_sigma = 1)
+p <- list(H = 0.38, a = 0.023, sigma = 0.05, Q = 5, x0 = 0.2)
+growth <- function(x, p) x * constants$r * (1 - x / constants$K)
+consumption <- function(x, p) p$a * x^p$Q / (x^p$Q + p$H^p$Q)
+```
+
+```{r}
+theory <- 
+  tibble(x= seq(0,2, length.out = 100)) %>%
+  mutate(g = growth(x, p), 
+         c = consumption(x, p)) %>%
+  mutate(potential = - cumsum(g - c)) %>%
+  gather(curve, y, -x, -potential) 
+```
+
+```{r noisy_switch}
+theory %>%
+  ggplot(aes(x, y, col = curve)) +
+  geom_line(lwd = 1)
+```
+
+```{r}
+theory %>%
+  ggplot(aes(x, potential)) + 
+  geom_line(lwd = 1)
+```
+
+```{r}
+library(nimble)
+# Define stochastic model in BUGS notation
+may  <- nimble::nimbleCode({
+  x[1] <- x0
+  log(a) ~ dnorm(mu_a, sd_a)
+  log(H) ~ dnorm(mu_H, sd_H)
+  log(Q) ~ dnorm(mu_Q, sd_Q)
+  log(sigma) ~ dnorm(mu_sigma, sd_sigma)
+  for(t in 1:(N-1)){
+    # Determinstic mean looks like standard R
+    mu[t] <- x[t] + x[t] * r * (1 - x[t] / K)  - a * x[t] ^ Q / (x[t] ^ Q + H ^ Q)
+    # Note the use of ~ in BUGS to show 'distributed as lognormal' 
+    x[t + 1] ~ dnorm(mu[t], sd = sigma)
+  }
+})
+
+model <- nimbleModel(code = may, constants = constants, inits = p)
+cmodel <- compileNimble(model)
+```
+
+```{r simulate, cache = F}
+set.seed(123)
+cmodel$a <- p$a; cmodel$H <- p$H; cmodel$Q <- p$Q; cmodel$x0 <- p$x0; cmodel$sigma <- p$sigma
+
+simulate(cmodel, nodes = c('mu', 'x'))
+df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
+
+cmodel$setData(list(x = cmodel$x))
+```
+
+```{r}
+df %>% filter(t < 4000) %>% ggplot(aes(t, x)) + geom_line()
+```
+
+```{r estimation}
+## block sampler
+system.time({
+  mcmcConf <- configureMCMC(cmodel)
+  mcmcConf$getMonitors()
+  mcmcConf$removeSampler(c("log_a", "log_H", "log_Q"))
+  mcmcConf$addSampler(target = c("log_a", "log_H", "log_Q"), type = 'RW_block')
+  mcmcConf$getMonitors()
+})
+```
+
+```{r}
+system.time({
+  mcmc <- buildMCMC(mcmcConf)
+  Cmcmc <- compileNimble(mcmc, project = model)
+})
+```
+
+```{r}
+mcmcConf$getMonitors()
+n_iterations <- 1e4
+system.time({
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2, thin = 1e2)
+})
+```
+
+
+```{r}
+samples <- as.matrix(Cmcmc$mvSamples)
+matplot(samples, type = "l", lty = 1)
+legend("top", horiz = T, lty = 1, col = 1:4, legend = colnames(samples), bty = "n")
+abline(h = lapply(p, log), col = 1:4)
+corrplot::corrplot(cor(samples))
+```
+
