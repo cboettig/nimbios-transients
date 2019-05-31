@@ -12,7 +12,7 @@ library(greta) # remotes::install_github("greta-dev/greta")
 
 
 ```{r}
-data <- read_csv("../data/slow.csv")
+data <- read_csv("../data/ex.csv")
 data %>% ggplot(aes(t,x)) + geom_point()
 ```
 

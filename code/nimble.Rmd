@@ -12,7 +12,7 @@ library(nimble)
   
 ```{r}
 constants <- list(r = .05, Q = 5, H = .38,  N = 1e3,a = 0.023)
-inits <- list(x0 = 0.2, K = 2, sigma = .01)
+inits <- list(x0 = 0.2, K = 2, sigma = .02)
 ```
 
 ```{r}
@@ -94,14 +94,3 @@ draws <- as_data_frame(samples) %>% mutate(t = seq_along(K)) %>% gather(var,valu
 ggplot(draws, aes(t, value)) + geom_line() + facet_wrap(~var, scales = "free")
 ggsave("K-sigma.png")
 ```
-
-
-
-
-```{r}
-matplot(samples, type = "l", lty = 1)
-legend("top", horiz = T, lty = 1, col = 1:4, legend = colnames(samples), bty = "n")
-abline(h = lapply(p, log), col = 1:4)
-corrplot::corrplot(cor(samples))
-```
-

@@ -76,7 +76,7 @@ df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 
 ```{r}
 df %>% ggplot(aes(t,x)) + geom_point()
-df %>% write_csv("../data/slow.csv")
+df %>% write_csv("../data/ex.csv")
 ```
 
 
@@ -94,7 +94,7 @@ df <- map_dfr(1:100,
 
 ```{r}
 df %>% 
-  filter(t %in% seq(1000, 2000, by = 1)) %>% 
+  #filter(t %in% seq(1000, 2000, by = 1)) %>% 
   ggplot(aes(t,x, group=reps)) + geom_line(alpha=.2)
 
 df %>% write_csv("../data/reps.csv")

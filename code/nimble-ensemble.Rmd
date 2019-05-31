@@ -1,0 +1,158 @@
+---
+title: "simulation & inference of transients"
+author: "Carl Boettiger"
+date: "5/30/2019"
+output: html_document
+---
+  
+```{r}
+library(tidyverse)
+library(nimble)
+```
+  
+```{r}
+constants <- list(N = 1e3, reps = 2, r = .05, Q = 5, H = .38, a = 0.023)
+inits <- list(x0 = 0.2, K = 2, sigma = .02)
+```
+
+```{r eval=FALSE}
+may  <- nimble::nimbleCode({
+  K ~ dunif(0,10)
+  sigma ~ dunif(0, 1)
+
+    x[1] <- x0
+    
+    for(t in 1:(N-1)){
+      # Determinstic mean looks like standard R
+      mu[t] <- 
+        x[t] + x[t] * r * (1 - x[t] / K)  - 
+        a * x[t] ^ Q / (x[t] ^ Q + H ^ Q)
+      # Note the use of ~ in BUGS to show 'distributed as normal' 
+      y[t+1] ~ dnorm(mu[t], sd = sigma)
+      x[t+1] <- max(y[t+1],0)
+    }
+  
+    x[N+1] <- x0
+    
+    for(t in (N+1):(2*N-1)){
+      # Determinstic mean looks like standard R
+      mu[t] <- 
+        x[t] + x[t] * r * (1 - x[t] / K)  - 
+        a * x[t] ^ Q / (x[t] ^ Q + H ^ Q)
+      # Note the use of ~ in BUGS to show 'distributed as normal' 
+      y[t+1] ~ dnorm(mu[t], sd = sigma)
+      x[t+1] <- max(y[t+1],0)
+    }
+  
+  
+})
+model <- nimbleModel(may, constants = constants, inits = inits)
+```
+
+```{r}
+may  <- nimble::nimbleCode({
+  K ~ dunif(0,10)
+  sigma ~ dunif(0, 1)
+
+  for(i in 1:reps){
+    for(t in 1:(N-1)){
+      # Determinstic mean looks like standard R
+      mu[t,i] <- 
+        x[t,i] + x[t,i] * r * (1 - x[t,i] / K)  - 
+        a * x[t,i] ^ Q / (x[t] ^ Q + H ^ Q)
+      # Note the use of ~ in BUGS to show 'distributed as normal' 
+      y[t+1,i] ~ dnorm(mu[t,i], sd = sigma)
+      x[t+1,i] <- max(y[t+1,i],0)
+    }
+  }
+  
+})
+model <- nimbleModel(may, constants = constants, inits = inits)
+```
+
+
+
+
+```{r}
+set.seed(123)
+simulate(model, nodes = c("mu", "x", "y"))
+df <- tibble(t = seq_along(model$x), x = model$x)
+df %>% ggplot(aes(t,x)) + geom_point()
+```
+
+
+
+```{r}
+model$K <- 0.1
+model$setData(list(x = df$x))
+model$initializeInfo()
+```
+
+
+
+```{r}
+cmodel <- compileNimble(model)
+```
+
+
+```{r estimation}
+## block sampler
+system.time({
+  mcmcConf <- configureMCMC(cmodel)
+  mcmcConf$getMonitors()
+  #mcmcConf$removeSampler(c("K", "sigma"))
+  #mcmcConf$addSampler(target = c("K", "sigma"), type = 'RW_block')
+  #mcmcConf$getMonitors()
+})
+
+```
+
+```{r}
+system.time({
+  mcmc <- buildMCMC(mcmcConf)
+  Cmcmc <- compileNimble(mcmc, project = model)
+})
+```
+
+```{r}
+mcmcConf$getMonitors()
+n_iterations <- 1e5
+system.time({
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2, thin = 1e2)
+})
+```
+
+
+```{r}
+samples <- as.matrix(Cmcmc$mvSamples)
+
+
+draws <- as_data_frame(samples) %>% mutate(t = seq_along(K)) %>% gather(var,value, -t)
+ggplot(draws, aes(t, value)) + geom_line() + facet_wrap(~var, scales = "free")
+ggsave("K-sigma-2reps.png")
+```
+
+
+
+
+
+
+--------
+
+
+
+
+
+Manually simulate multiple replicates
+
+```{r}
+set.seed(123)
+df <- map_dfr(1:constants$reps, 
+  function(i){
+    simulate(model, nodes = c("mu", "x", "y"))
+    tibble(t = seq_along(model$x), x = model$x, reps = i)
+   })
+
+df %>% ggplot(aes(t,x, group=reps)) + geom_line(alpha=.2)
+df %>% write_csv("../data/reps.csv")
+```
