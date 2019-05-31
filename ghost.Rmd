@@ -13,7 +13,7 @@ library(nimble)
 ```{r}
 #a = 0.023
 r = 0.05
-p <- list(r = .2, K = 2, Q = 5, H = .38, sigma = .01, a=0, N = 1e2)
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .01, a=0.023, N = 1e2)
 growth <- function(x, p) x * p$r * (1 - x / p$K)
 consumption <- function(x,p) p$a * x ^ p$Q / (x^p$Q + p$H^p$Q)
 ```
