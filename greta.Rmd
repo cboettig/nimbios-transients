@@ -12,15 +12,14 @@ library(greta) # remotes::install_github("greta-dev/greta")
 
 
 ```{r}
-data <- read_csv("big.csv")
+data <- read_csv("slow.csv")
 data %>% ggplot(aes(t,x)) + geom_point()
 ```
 
 
 ```{r}
-x_t1 <- data$x
-x_t <- lag(data$x)[-1]
-x_t1 <- x_t1[1:(length(x_t1)-1)]
+x_t1 <- data$x[-1]
+x_t <- data$x[-100]
 
 
 
@@ -35,6 +34,7 @@ Q <- 5
 H <- 0.38
 sigma <- 0.01
 # Priors
+a <- 0
 K <- uniform(0, 4)
 #H <- uniform(0,  2 * 0.38)
 #a <- uniform(0, 2 * 0.0233)

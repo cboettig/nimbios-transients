@@ -11,7 +11,9 @@ library(nimble)
 ```
   
 ```{r}
-p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .01, a = 0.023, N = 1e4)
+#a = 0.023
+r = 0.05
+p <- list(r = .2, K = 2, Q = 5, H = .38, sigma = .01, a=0, N = 1e2)
 growth <- function(x, p) x * p$r * (1 - x / p$K)
 consumption <- function(x,p) p$a * x ^ p$Q / (x^p$Q + p$H^p$Q)
 ```
@@ -66,13 +68,13 @@ may  <- nimble::nimbleCode({
   
 })
 model <- nimbleModel(may,constants = p, inits = list(x0 = 0.2))
-cmodel <- compileNimble(model)
+cmodel <- model #compileNimble(model)
 set.seed(123)
 simulate(cmodel)
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
 
 ```{r}
-df %>% filter(t< 1000) %>% ggplot(aes(t,x)) + geom_point()
-df %>% write_csv("big.csv")
+df %>% ggplot(aes(t,x)) + geom_point()
+df %>% write_csv("slow.csv")
 ```
