@@ -14,7 +14,7 @@ library(tidyverse)
 ```{r parameters}
 N <- 1e4
 r <- 0.05; K <- 2
-a <- 0.023; H <- 0.38; Q <- 5
+a <- 0.023; H <- 0.3; Q <- 3
 x0 <- 0.2; sigma <- 0.02
 growth <- function(x, r, K) x * r * (1 - x / K)
 consumption <- function(x, a, H, Q) a * x^Q / (x^Q + H^Q)
@@ -22,7 +22,7 @@ consumption <- function(x, a, H, Q) a * x^Q / (x^Q + H^Q)
 
 ```{r theory}
 theory <- 
-  tibble(x = seq(0,2, length.out = 100)) %>%
+  tibble(x = seq(0,K, length.out = 100)) %>%
   mutate(g = growth(x, r, K), 
          c = consumption(x, a, H, Q)) %>%
   mutate(potential = - cumsum(g - c)) %>%
@@ -43,45 +43,63 @@ theory %>%
 
 ```{r nimble_model}
 library(nimble)
-# Define stochastic model in BUGS notation
-may  <- nimble::nimbleCode({
+## define truncated normal distribution ----
+dtruncnorm <- nimbleFunction(
+  run = function(x = double(0), mean = double(0), 
+                 sd = double(0), log = integer(0, default = 0)) {
+    returnType(double(0))
+    log_prob <- dnorm(x = x, mean = mean, sd = sd, log = 1) - 
+      pnorm(q = 0, mean = -mean, sd = sd, log = 1)
+    if(log) return(log_prob)
+    else return(exp(log_prob))
+  })
+rtruncnorm <- nimbleFunction(
+  run = function(n = integer(0, default = 1), mean = double(0),
+                 sd = double(0)) {
+    returnType(double(0))
+    if(n != 1) print("rtruncnorm only allows n = 1; using n = 1.")
+    draw <- rnorm(n = 1, mean = mean, sd = sd)
+    while(draw < 0)
+      draw <- rnorm(n = 1, mean = mean, sd = sd)
+    return(draw)
+  })
+# Define stochastic model in BUGS notation ----
+may <- nimble::nimbleCode({
   log(r) ~ dnorm(mu_r, sd_r)
   log(K) ~ dnorm(mu_K, sd_K)
   log(a) ~ dnorm(mu_a, sd_a)
   log(H) ~ dnorm(mu_H, sd_H)
   log(Q) ~ dnorm(mu_Q, sd_Q)
-  log(x0) ~ dnorm(mu_x0, sd_x0)
+  x0 ~ dtruncnorm(mu_x0, sd_x0)
   log(sigma) ~ dnorm(mu_sigma, sd_sigma)
   x[1] <- x0
   for(t in 1:(N - 1)){
-    # Determinstic mean looks like standard R
-    mu[t] <- x[t] + x[t] * r * (1 - x[t] / K) - a * x[t] ^ Q / (x[t] ^ Q + H ^ Q)
-    # Note the use of ~ in BUGS to show 'distributed as normal' 
-    dB[t] ~ dnorm(0, sd = sigma)
-    x[t + 1] <- max(0, mu[t] + dB[t])
+    mu[t] <- x[t] + x[t] * r * (1 - x[t] / K) - a * x[t]^Q / (x[t]^Q + H^Q)
+    x[t + 1] ~ dtruncnorm(mean = mu[t], sd = sigma)
   }
 })
-#
+# constants ----
 constants <- list(
-  mu_r = 0, sd_r = 1,
-  mu_K = 0, sd_k = 1,
-  mu_a = 0, sd_a = 1,
-  mu_H = 0, sd_H = 1,
-  mu_Q = 0, sd_Q = 1,
-  mu_x0 = 0, sd_x0 = 1,
-  mu_sigma = 0, sd_sigma = 1
+  mu_r = log(r), sd_r = 1,
+  mu_K = log(K), sd_K = 1,
+  mu_a = log(a), sd_a = 1,
+  mu_H = log(H), sd_H = 1,
+  mu_Q = log(Q), sd_Q = 1,
+  mu_x0 = x0, sd_x0 = 1,
+  mu_sigma = log(sigma), sd_sigma = 1
 )
-
-model <- nimbleModel(code = may, constants = constants)
+## inits ----
+inits <- list("log_r" = log(r), "log_K" = log(K), 
+              "log_a" = log(a), "log_H" = log(H), "log_Q" = log(Q),
+              "log_sigma" = log(sigma), "x0" = x0)
+# define and compile model ----
+model <- nimbleModel(code = may, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ```
 
 ```{r simulate, cache = T}
 set.seed(123)
-cmodel$r <- r; cmodel$K <- K
-cmodel$a <- a; cmodel$H <- H; cmodel$Q <- Q
-cmodel$x0 <- x0; cmodel$sigma <- sigma
-simulate(cmodel, nodes = c('x', 'mu', 'dB'))
+simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
 
@@ -90,10 +108,13 @@ df %>% filter(t < 4000) %>% ggplot(aes(t, x)) + geom_line()
 ```
 
 ```{r likelihood_surfaces_1D, fig.height=10}
+dnorm_mod <- function(x, mean, sd, log = T){
+  dnorm(x = x, mean = mean, sd = sd, log = log) - log(1 - pnorm(q = 0, mean = mean, sd = sd))
+}
 get_ll <- function(x, r, K, a, H, Q, sigma){
   TIME <- length(x)
   mu <- x + x * r * (1 - x / K) - a * x^Q / (x^Q + H^Q)
-  sum(dnorm(x = x[-1], mean = mu[-TIME], sd = sigma), log = T)
+  sum(dnorm_mod(x = x[-1], mean = mu[-TIME], sd = sigma, log = T))
 }
 ##
 grid_r <- seq(1e-2, 1e-1, l=5e1)
@@ -104,7 +125,7 @@ grid_K <- seq(1, 5, l=5e1)
 ll_K <- sapply(grid_K, function(K) get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = K,
                                           H = cmodel$H, Q = cmodel$Q, sigma = cmodel$sigma))
 ##
-grid_a <- seq(1e-2, 3e-2, l=5e1)
+grid_a <- seq(1e-3, 1e-1, l=5e1)
 ll_a <- sapply(grid_a, function(a) get_ll(a = a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
                                           H = cmodel$H, Q = cmodel$Q, sigma = cmodel$sigma))
 ##
@@ -112,11 +133,11 @@ grid_H <- exp(seq(log(1e-2), log(0.7), l=5e1))
 ll_H <- sapply(grid_H, function(H) get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
                                           H = H, Q = cmodel$Q, sigma = cmodel$sigma))
 ##
-grid_Q <- exp(seq(log(1), log(10), l=5e1))
+grid_Q <- exp(seq(log(1.5), log(8), l=5e1))
 ll_Q <- sapply(grid_Q, function(Q) get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
                                           H = cmodel$H, Q = Q, sigma = cmodel$sigma))
 ##
-grid_sigma <- exp(seq(log(1e-5), log(1e-1), l=5e1))
+grid_sigma <- exp(seq(log(1e-2), log(1e-1), l=5e1))
 ll_sigma <- sapply(grid_sigma, function(sigma) 
   get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
          H = cmodel$H, Q = cmodel$Q, sigma = sigma))
@@ -132,7 +153,7 @@ plot(grid_H, (ll_H - max(ll_H)), type = "l", main = "H")
 abline(v = cmodel$H)
 plot(grid_Q, (ll_Q - max(ll_Q)), type = "l", main = "Q")
 abline(v = cmodel$Q)
-plot(grid_sigma, (ll_sigma - max(ll_sigma)), type = "l", main = "sigma")
+plot(grid_sigma, (ll_sigma - max(ll_sigma)), log = "x", type = "l", main = "sigma")
 abline(v = cmodel$sigma)
 ```
 
@@ -147,13 +168,13 @@ ll_Ka <- apply(expand.grid(grid_K, grid_a), 1, function(pair)
 ll_rK <- apply(expand.grid(grid_r, grid_K), 1, function(pair) 
   get_ll(x = cmodel$x, r = pair[1], K = pair[2], a = cmodel$a,
          H = cmodel$H, Q = cmodel$Q, sigma = cmodel$sigma))
-ll_asigma <- apply(expand.grid(grid_a, grid_sigma), 1, function(pair) 
-  get_ll(x = cmodel$x, r = cmodel$r, K = cmodel$K, a = pair[1],
+ll_Ksigma <- apply(expand.grid(grid_K, grid_sigma), 1, function(pair) 
+  get_ll(x = cmodel$x, r = cmodel$r, K = pair[1], a = cmodel$a,
          H = cmodel$H, Q = cmodel$Q, sigma = pair[2]))
 ```
 
 ```{r plot_ll_2D, fig.height=9}
-layout(matrix(1:4, 2, 2))
+layout(matrix(1:4, 2, 2)); par(mar = c(4, 4, 1, 1))
 image(grid_Q, grid_H, matrix((ll_QH - max(ll_QH, na.rm = T)), length(grid_Q), length(grid_H)))
 points(cmodel$Q, cmodel$H)
 ##
@@ -163,30 +184,21 @@ points(cmodel$K, cmodel$a)
 image(grid_r, grid_K, matrix((ll_rK - max(ll_rK)), length(grid_r), length(grid_K)))
 points(cmodel$r, cmodel$K)
 ##
-image(grid_a, grid_sigma, matrix((ll_asigma - max(ll_asigma)), length(grid_a), length(grid_sigma)))
-points(cmodel$a, cmodel$sigma)
+image(grid_K, grid_sigma, matrix((ll_Ksigma - max(ll_Ksigma)), length(grid_a), length(grid_sigma)))
+points(cmodel$K, cmodel$sigma)
 ```
 
-```{r estimation, eval = F, echo = F}
+```{r estimation, cache = T}
 model$setData(x = cmodel$x)
-model$setInits(inits = list(
-  r = r, K = K, 
-  a = a, H = H, Q = Q, 
-  sigma = sigma, x0 = x0
-)
-)
-calculate_nodes <- calcNodes(model, nodes = "mu")
-ccalculate_nodes <- compileNimble(calculate_nodes, project = cmodel)
-calculate_nodes$run()
-
 cmodel <- compileNimble(model)
 
 ## block sampler
 system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
-  mcmcConf$removeSamplers(c("log_a", "log_H", "log_Q", "log_sigma", "log_x0"))
-  # mcmcConf$addSampler(target = c("log_a", "log_H", "log_Q"), type = 'RW_block')
+  mcmcConf$removeSamplers(c("log_r"))
+  mcmcConf$addSampler(target = c("log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0"), 
+                      type = 'RW_block')
   mcmcConf$getSamplers()
 })
 system.time({
@@ -194,12 +206,26 @@ system.time({
   Cmcmc <- compileNimble(mcmc, project = model)
 })
 ##
-n_iterations <- 1e3
+n_iterations <- 3e3
 system.time({
-  Cmcmc$run(n_iterations, nburnin = n_iterations / 2, thin = 1e2)
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2)
 })
 samples <- as.matrix(Cmcmc$mvSamples)
-matplot(samples, type = "l", lty = 1)
-# legend("top", horiz = T, lty = 1, col = 1:4, legend = colnames(samples), bty = "n")
-# corrplot::corrplot(cor(samples))
+```
+
+```{r trace_plots}
+layout(matrix(1:6, 3, 2))
+plot(exp(samples[, 'log_K']), type = "l", main = "K")
+abline(h = K)
+plot(exp(samples[, 'log_a']), type = "l", main = "a")
+abline(h = a)
+plot(exp(samples[, 'log_H']), type = "l", main = "H")
+abline(h = H)
+plot(exp(samples[, 'log_Q']), type = "l", main = "Q")
+abline(h = Q)
+plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma")
+abline(h = sigma)
+plot(samples[, 'x0'], type = "l", main = "x0")
+abline(h = x0)
+corrplot::corrplot(cor(samples[, c("log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
 ```
