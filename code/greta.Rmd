@@ -12,7 +12,7 @@ library(greta) # remotes::install_github("greta-dev/greta")
 
 
 ```{r}
-data <- read_csv("slow.csv")
+data <- read_csv("../data/slow.csv")
 data %>% ggplot(aes(t,x)) + geom_point()
 ```
 
@@ -35,14 +35,14 @@ H <- 0.38
 sigma <- 0.01
 # Priors
 a <- 0
-K <- uniform(0, 4)
+K <- uniform(0, 10)
 #H <- uniform(0,  2 * 0.38)
 #a <- uniform(0, 2 * 0.0233)
 #sigma <- normal(0, 2 * 0.01)
 
 # Model
 mean <- r * x_t * (1 - x_t / K) - a * x_t ^ Q / (x_t ^ Q + H ^ Q)
-distribution(x_t1) <- normal(mean, sigma)
+distribution(x_t1) <- normal(mean, 1/sigma^2)
 m <- model(K)
 ```
 

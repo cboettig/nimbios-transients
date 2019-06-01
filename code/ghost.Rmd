@@ -13,7 +13,7 @@ library(nimble)
 ```{r}
 #a = 0.023
 r = 0.05
-p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .01, a=0.023, N = 1e2)
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .02, a=0.023, N = 1e3)
 growth <- function(x, p) x * p$r * (1 - x / p$K)
 consumption <- function(x,p) p$a * x ^ p$Q / (x^p$Q + p$H^p$Q)
 ```
@@ -69,12 +69,33 @@ may  <- nimble::nimbleCode({
 })
 model <- nimbleModel(may,constants = p, inits = list(x0 = 0.2))
 cmodel <- model #compileNimble(model)
-set.seed(123)
+set.seed(123456)
 simulate(cmodel)
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
 
 ```{r}
 df %>% ggplot(aes(t,x)) + geom_point()
-df %>% write_csv("slow.csv")
+df %>% write_csv("../data/slow.csv")
+```
+
+
+Let's do 100 replicates
+
+```{r}
+set.seed(123)
+
+df <- map_dfr(1:100, 
+  function(i){
+    simulate(cmodel)
+    tibble(t = seq_along(cmodel$x), x = cmodel$x, reps = i)
+   })
+```
+
+```{r}
+df %>% 
+  filter(t %in% seq(1000, 2000, by = 1)) %>% 
+  ggplot(aes(t,x, group=reps)) + geom_line(alpha=.2)
+
+df %>% write_csv("../data/reps.csv")
 ```

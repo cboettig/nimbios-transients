@@ -11,13 +11,16 @@ library(nimble)
 ```
   
 ```{r}
-constants <- list(r = .05, Q = 5, H = .38, sigma = .01, N = 1e3, a = 0.023)
-inits <- list(K = 2, x0 = 0.2)
+constants <- list(r = .05, Q = 5, H = .38,  N = 1e3,a = 0.023)
+inits <- list(x0 = 0.2, K = 2, sigma = .01)
 ```
 
 ```{r}
+# can't initialize log
+
 may  <- nimble::nimbleCode({
-  K ~ dlnorm(0,1)
+  K ~ dunif(0,10)
+  sigma ~ dlnorm(-4, 0.1)
   x[1] <- x0
   for(t in 1:(N-1)){
     # Determinstic mean looks like standard R
@@ -36,8 +39,14 @@ set.seed(123)
 simulate(model, nodes = c("mu", "x", "y"))
 df <- tibble(t = seq_along(model$x), x = model$x)
 df %>% ggplot(aes(t,x)) + geom_point()
+
 ```
+
+
+
 ```{r}
+model$K <- 0.1
+model$sigma
 model$setData(list(x = model$x))
 model$initializeInfo()
 ```
@@ -54,10 +63,11 @@ cmodel <- compileNimble(model)
 system.time({
   mcmcConf <- configureMCMC(cmodel)
   mcmcConf$getMonitors()
-  #mcmcConf$removeSampler(c("a"))
-  #mcmcConf$addSampler(target = c("a"), type = 'RW_block')
+  #mcmcConf$removeSampler(c("K", "sigma"))
+  #mcmcConf$addSampler(target = c("K", "sigma"), type = 'RW_block')
   #mcmcConf$getMonitors()
 })
+
 ```
 
 ```{r}
@@ -78,9 +88,15 @@ system.time({
 
 ```{r}
 samples <- as.matrix(Cmcmc$mvSamples)
+
+
 draws <- as_data_frame(samples) %>% mutate(t = seq_along(K)) %>% gather(var,value, -t)
 ggplot(draws, aes(t, value)) + geom_line() + facet_wrap(~var, scales = "free")
+ggsave("K-sigma.png")
 ```
+
+
+
 
 ```{r}
 matplot(samples, type = "l", lty = 1)
