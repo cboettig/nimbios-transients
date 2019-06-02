@@ -1,13 +1,13 @@
 ---
 title: "simulation & inference of transients"
-author: "Carl Boettiger"
-date: "5/30/2019"
+author: "Carl Boettiger, Jorge Arroyo Esquivel, Junjie Jiang, Jody Reimer, Henry Scharf, Elizabeth Wolkovich, and Kai Zhu"
+date: "`r Sys.Date()`"
 output:
   pdf_document: default
   html_document: default
 ---
 
-```{r librar, message=F}
+```{r library, message=F}
 library(tidyverse)
 ```
 
@@ -97,19 +97,20 @@ model <- nimbleModel(code = may, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ```
 
-```{r simulate, cache = T}
+```{r simulate, cache = F}
 set.seed(123)
 simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
 
-```{r plot simulate data, cache = T}
+```{r plot simulate data}
 df %>% filter(t < 4000) %>% ggplot(aes(t, x)) + geom_line()
 ```
 
 ```{r likelihood_surfaces_1D, fig.height=10}
 dnorm_mod <- function(x, mean, sd, log = T){
-  dnorm(x = x, mean = mean, sd = sd, log = log) - log(1 - pnorm(q = 0, mean = mean, sd = sd))
+  dnorm(x = x, mean = mean, sd = sd, log = log) - 
+    log(1 - pnorm(q = 0, mean = mean, sd = sd))
 }
 get_ll <- function(x, r, K, a, H, Q, sigma){
   TIME <- length(x)
@@ -151,10 +152,11 @@ plot(grid_a, (ll_a - max(ll_a)), type = "l", main = "a")
 abline(v = cmodel$a)
 plot(grid_H, (ll_H - max(ll_H)), type = "l", main = "H")
 abline(v = cmodel$H)
-plot(grid_Q, (ll_Q - max(ll_Q)), type = "l", main = "Q")
+plot(grid_Q, (ll_Q - max(ll_Q)), type = "l", main = "Q", log = "x")
 abline(v = cmodel$Q)
 plot(grid_sigma, (ll_sigma - max(ll_sigma)), log = "x", type = "l", main = "sigma")
 abline(v = cmodel$sigma)
+
 ```
 
 ```{r likelihood_surfaces_2D, cache = T}
@@ -173,7 +175,7 @@ ll_Ksigma <- apply(expand.grid(grid_K, grid_sigma), 1, function(pair)
          H = cmodel$H, Q = cmodel$Q, sigma = pair[2]))
 ```
 
-```{r plot_ll_2D, fig.height=9}
+```{r plot_ll_2D, fig.height=9, eval = T}
 layout(matrix(1:4, 2, 2)); par(mar = c(4, 4, 1, 1))
 image(grid_Q, grid_H, matrix((ll_QH - max(ll_QH, na.rm = T)), length(grid_Q), length(grid_H)))
 points(cmodel$Q, cmodel$H)
@@ -196,8 +198,8 @@ cmodel <- compileNimble(model)
 system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
-  mcmcConf$removeSamplers(c("log_r"))
-  mcmcConf$addSampler(target = c("log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0"), 
+  # mcmcConf$removeSamplers(c()) 
+  mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0"), 
                       type = 'RW_block')
   mcmcConf$getSamplers()
 })
@@ -206,26 +208,68 @@ system.time({
   Cmcmc <- compileNimble(mcmc, project = model)
 })
 ##
-n_iterations <- 3e3
+n_iterations <- 1e4
 system.time({
   Cmcmc$run(n_iterations, nburnin = n_iterations / 2)
 })
 samples <- as.matrix(Cmcmc$mvSamples)
 ```
 
-```{r trace_plots}
-layout(matrix(1:6, 3, 2))
+```{r trace_plots, fig.height=10}
+layout(matrix(1:8, 4, 2))
+plot(exp(samples[, 'log_r']), type = "l", main = "r")
+abline(h = r)
 plot(exp(samples[, 'log_K']), type = "l", main = "K")
 abline(h = K)
-plot(exp(samples[, 'log_a']), type = "l", main = "a")
+plot(exp(samples[, 'log_a']), type = "l", main = "a", 
+     ylim = range(exp(samples[, 'log_a']), a))
 abline(h = a)
 plot(exp(samples[, 'log_H']), type = "l", main = "H")
 abline(h = H)
-plot(exp(samples[, 'log_Q']), type = "l", main = "Q")
+plot(exp(samples[, 'log_Q']), type = "l", main = "Q", log = "y")
 abline(h = Q)
 plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma")
 abline(h = sigma)
 plot(samples[, 'x0'], type = "l", main = "x0")
 abline(h = x0)
-corrplot::corrplot(cor(samples[, c("log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
+corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
+```
+
+Notice $a$, $r$, and $K$ are highly correlated. Taking out two of them stablizes somewhat, but dependence in the posterior distributions arises between other variables.
+
+```{r estimation_fix_a_K, cache = T}
+## block sampler
+system.time({
+  mcmcConf <- configureMCMC(model)
+  mcmcConf$getSamplers()
+  mcmcConf$removeSamplers(c("log_a", "log_K"))
+  mcmcConf$addSampler(target = c("log_r", "log_H", "log_Q", "log_sigma", "x0"), 
+                      type = 'RW_block')
+  mcmcConf$getSamplers()
+})
+system.time({
+  mcmc <- buildMCMC(mcmcConf)
+  Cmcmc <- compileNimble(mcmc, project = model)
+})
+##
+n_iterations <- 1e4
+system.time({
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2)
+})
+samples <- as.matrix(Cmcmc$mvSamples)
+```
+
+```{r trace_plots_no_a_K, fig.height=10}
+layout(matrix(1:6, 3, 2))
+plot(exp(samples[, 'log_r']), type = "l", main = "r")
+abline(h = r)
+plot(exp(samples[, 'log_H']), type = "l", main = "H")
+abline(h = H)
+plot(exp(samples[, 'log_Q']), type = "l", main = "Q", log = "y")
+abline(h = Q)
+plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma")
+abline(h = sigma)
+plot(samples[, 'x0'], type = "l", main = "x0")
+abline(h = x0)
+corrplot::corrplot(cor(samples[, c("log_r", "log_H", "log_Q", "log_sigma", "x0")]))
 ```
