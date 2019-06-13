@@ -8,6 +8,7 @@ output: github_document
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(greta) # remotes::install_github("greta-dev/greta")
+set.seed(123456)
 ```
 
 
@@ -18,7 +19,7 @@ data %>% ggplot(aes(t,x, group=reps)) + geom_line(alpha=0.1)
 
 ```{r}
 wide <- data %>% spread(reps, x) %>% select(-t) %>% 
-  select(1) %>% # how many reps we use
+  select(1:5) %>% # how many reps we use
   as.matrix()
 n <- dim(wide)[1]
 
@@ -44,6 +45,7 @@ a <- uniform(0, 1)
 r <- uniform(0, 1)
 #Q <- uniform(0, 10)
 sigma <- uniform(0, 1)
+
 
 # Model
 mean <- x_t + r * x_t * (1 - x_t / K) - a * x_t ^ Q / (x_t ^ Q + H ^ Q)
@@ -78,5 +80,14 @@ samples %>%
 ```
 
 ```{r}
+samples %>% ggplot() + 
+  geom_histogram(aes(value))  +
+  facet_wrap(~variable, scales = "free")
 ```
+
+
+```{r}
+```
+
+
 
