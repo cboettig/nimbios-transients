@@ -54,7 +54,9 @@ m <- model(K, a, H, sigma, r)
 ```
 
 ```{r}
-draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4)
+system.time({
+  draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4)
+})
 ```
 
 ```{r}
