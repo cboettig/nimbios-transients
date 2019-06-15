@@ -82,14 +82,20 @@ samples %>%
 ```
 
 ```{r}
-samples %>% ggplot() + 
-  geom_histogram(aes(value))  +
-  facet_wrap(~variable, scales = "free")
+#Q = 5
+true <- data.frame(a = 0.023, r = .05, K = 2, H = .38, sigma = .02) %>%
+  gather(variable, value)
 ```
 
 
 ```{r}
+samples %>% ggplot() + 
+  geom_histogram(aes(value), bins = 30)  +
+  geom_vline(data = true, aes(xintercept = value), col = "red", lwd = 1) + 
+  facet_wrap(~variable, scales = "free")
 ```
+
+
 
 
 
