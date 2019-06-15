@@ -19,7 +19,7 @@ data %>% ggplot(aes(t,x, group=reps)) + geom_line(alpha=0.1)
 
 ```{r}
 wide <- data %>% spread(reps, x) %>% select(-t) %>% 
-  select(1) %>% # how many reps we use
+  select(2) %>% # which / how many reps we use
   as.matrix()
 n <- dim(wide)[1]
 
