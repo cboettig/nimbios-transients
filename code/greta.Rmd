@@ -19,7 +19,7 @@ data %>% ggplot(aes(t,x, group=reps)) + geom_line(alpha=0.1)
 
 ```{r}
 wide <- data %>% spread(reps, x) %>% select(-t) %>% 
-  # select(1:5) %>% # how many reps we use
+  select(1) %>% # how many reps we use
   as.matrix()
 n <- dim(wide)[1]
 
@@ -53,9 +53,9 @@ distribution(x_t1) <- normal(mean, sigma)
 m <- model(K, a, H, sigma, r)
 ```
 
-```{r}
+```{r }
 system.time({
-  draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4)
+  draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4, verbose = FALSE)
 })
 ```
 
