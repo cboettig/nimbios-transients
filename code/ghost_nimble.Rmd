@@ -98,7 +98,7 @@ cmodel <- compileNimble(model)
 ```
 
 ```{r simulate, cache = F}
-set.seed(123)
+set.seed(1234)
 simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
@@ -159,7 +159,7 @@ abline(v = cmodel$sigma)
 
 ```
 
-```{r likelihood_surfaces_2D, cache = T}
+```{r likelihood_surfaces_2D, cache = F}
 ll_QH <- apply(expand.grid(grid_Q, grid_H), 1, function(pair) 
   if(pair[2] > (0.6 / 3) * pair[1] + 0.18 - (0.6 / 3)) NA else 
   get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
@@ -190,16 +190,16 @@ image(grid_K, grid_sigma, matrix((ll_Ksigma - max(ll_Ksigma)), length(grid_a), l
 points(cmodel$K, cmodel$sigma)
 ```
 
-```{r estimation, cache = T}
+```{r estimation, cache = F}
 model$setData(x = cmodel$x)
 cmodel <- compileNimble(model)
-
 ## block sampler
 system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
   # mcmcConf$removeSamplers(c()) 
-  mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0"), 
+  mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", 
+                                 "log_H", "log_Q", "log_sigma", "x0"), 
                       type = 'RW_block')
   mcmcConf$getSamplers()
 })
@@ -237,7 +237,7 @@ corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", 
 
 Notice $a$, $r$, and $K$ are highly correlated. Taking out two of them stablizes somewhat, but dependence in the posterior distributions arises between other variables.
 
-```{r estimation_fix_a_K, cache = T}
+```{r estimation_fix_a_K, cache = F}
 ## block sampler
 system.time({
   mcmcConf <- configureMCMC(model)
@@ -249,7 +249,7 @@ system.time({
 })
 system.time({
   mcmc <- buildMCMC(mcmcConf)
-  Cmcmc <- compileNimble(mcmc, project = model)
+  Cmcmc <- compileNimble(mcmc, project = model, resetFunctions = T)
 })
 ##
 n_iterations <- 1e4
