@@ -42,7 +42,7 @@ Q <- 5
 K <- uniform(0, 10)
 H <- uniform(0,  2)
 a <- uniform(0, 1)
-r <- uniform(0, 1)
+r <- uniform(0, 10)
 #Q <- uniform(0, 10)
 sigma <- uniform(0, 1)
 
