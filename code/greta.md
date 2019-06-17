@@ -78,7 +78,7 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##  93.524  17.462  39.194
+    ##  92.003  17.660  38.563
 
 ``` r
 summary(draws)
