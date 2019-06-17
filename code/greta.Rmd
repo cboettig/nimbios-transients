@@ -8,8 +8,8 @@ output: github_document
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(greta) # remotes::install_github("greta-dev/greta")
-Sys.setenv("CUDA_VISIBLE_DEVICES" = -1)   # Disable GPU
-set.seed(123456)
+tensorflow::use_session_with_seed(42)
+#set.seed(123456)
 ```
 
 
