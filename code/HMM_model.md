@@ -80,3 +80,15 @@ df  %>%
 ```
 
 ![](HMM_model_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+many_observations <- read_csv(paste(here::here(),"/data/reps.csv",sep=""))
+all <- many_observations %>% hmm() 
+```
+
+``` r
+all %>% 
+  ggplot(aes(t,x, col=state)) + geom_point(alpha=0.2, size=0.1)
+```
+
+![](HMM_model_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->

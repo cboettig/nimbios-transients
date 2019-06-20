@@ -70,3 +70,16 @@ df  %>%
   ggplot(aes(t,x, col=state, group=reps)) + geom_point(alpha=0.2, size=0.1)
 ```
 
+
+
+
+```{r results="hide"}
+many_observations <- read_csv(paste(here::here(),"/data/reps.csv",sep=""))
+all <- many_observations %>% hmm() 
+```
+
+```{r}
+all %>% 
+  ggplot(aes(t,x, col=state)) + geom_point(alpha=0.2, size=0.1)
+
+```
