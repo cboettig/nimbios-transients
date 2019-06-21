@@ -8,6 +8,7 @@ output: github_document
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(greta) # remotes::install_github("greta-dev/greta")
+set.seed(123456)
 ```
 
 
@@ -18,7 +19,7 @@ data %>% ggplot(aes(t,x, group=reps)) + geom_line(alpha=0.1)
 
 ```{r}
 wide <- data %>% spread(reps, x) %>% select(-t) %>% 
-  select(1) %>% # how many reps we use
+  select(2) %>% # which / how many reps we use
   as.matrix()
 n <- dim(wide)[1]
 
@@ -45,14 +46,17 @@ r <- uniform(0, 1)
 #Q <- uniform(0, 10)
 sigma <- uniform(0, 1)
 
+
 # Model
 mean <- x_t + r * x_t * (1 - x_t / K) - a * x_t ^ Q / (x_t ^ Q + H ^ Q)
 distribution(x_t1) <- normal(mean, sigma)
 m <- model(K, a, H, sigma, r)
 ```
 
-```{r}
-draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4)
+```{r }
+system.time({
+  draws <- mcmc(m, n_samples = 1000, warmup = 3000, chains = 4, verbose = FALSE)
+})
 ```
 
 ```{r}
@@ -78,5 +82,20 @@ samples %>%
 ```
 
 ```{r}
+#Q = 5
+true <- data.frame(a = 0.023, r = .05, K = 2, H = .38, sigma = .02) %>%
+  gather(variable, value)
 ```
+
+
+```{r}
+samples %>% ggplot() + 
+  geom_histogram(aes(value), bins = 30)  +
+  geom_vline(data = true, aes(xintercept = value), col = "red", lwd = 1) + 
+  facet_wrap(~variable, scales = "free")
+```
+
+
+
+
 
