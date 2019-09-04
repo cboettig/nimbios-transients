@@ -41,7 +41,7 @@ theory %>%
   geom_line(lwd = 1)
 ```
 
-```{r nimble_model}
+```{r nimble_model, cache = T}
 library(nimble)
 ## define truncated normal distribution ----
 dtruncnorm <- nimbleFunction(
@@ -97,7 +97,7 @@ model <- nimbleModel(code = may, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ```
 
-```{r simulate, cache = F}
+```{r simulate, cache = T}
 set.seed(1234)
 simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
@@ -190,16 +190,16 @@ image(grid_K, grid_sigma, matrix((ll_Ksigma - max(ll_Ksigma)), length(grid_a), l
 points(cmodel$K, cmodel$sigma)
 ```
 
-```{r estimation, cache = F}
+```{r estimation, cache = T}
 model$setData(x = cmodel$x)
 cmodel <- compileNimble(model)
 ## block sampler
 system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
-  # mcmcConf$removeSamplers(c()) 
+  mcmcConf$removeSamplers(c("x0"))
   mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", 
-                                 "log_H", "log_Q", "log_sigma", "x0"), 
+                                 "log_H", "log_Q", "log_sigma"), 
                       type = 'RW_block')
   mcmcConf$getSamplers()
 })
@@ -235,15 +235,31 @@ abline(h = x0)
 corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
 ```
 
+```{r potential_curves, cache = T}
+x <- seq(0, 2, l=1e2)
+potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
+  - cumsum(growth(x = x, r = r, K = K) - 
+           consumption(x = x, a = a, H = H, Q = Q))
+}
+potential_curves <- apply(samples, 1, function(row){
+  potential(x = x, a = exp(row['log_a']), r = exp(row['log_r']), 
+            H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))
+})
+subset <- sample(1:nrow(samples), min(400, nrow(samples)))
+matplot(x, potential_curves[, subset], type = "l", lty = 1,
+        col = scales::alpha(1, 1e-2), lwd = 2)
+lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+```
+
 Notice $a$, $r$, and $K$ are highly correlated. Taking out two of them stablizes somewhat, but dependence in the posterior distributions arises between other variables.
 
-```{r estimation_fix_a_K, cache = F}
+```{r estimation_fix_a_K, cache = T}
 ## block sampler
 system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
-  mcmcConf$removeSamplers(c("log_a", "log_K"))
-  mcmcConf$addSampler(target = c("log_r", "log_H", "log_Q", "log_sigma", "x0"), 
+  mcmcConf$removeSamplers(c("log_a", "log_K", "x0"))
+  mcmcConf$addSampler(target = c("log_r", "log_H", "log_Q", "log_sigma"), 
                       type = 'RW_block')
   mcmcConf$getSamplers()
 })
@@ -272,4 +288,20 @@ abline(h = sigma)
 plot(samples[, 'x0'], type = "l", main = "x0")
 abline(h = x0)
 corrplot::corrplot(cor(samples[, c("log_r", "log_H", "log_Q", "log_sigma", "x0")]))
+```
+
+```{r potential_curves_no_a_K, cache = T}
+x <- seq(0, 2, l=1e2)
+potential <- function(x = seq(0, 2, l = 1e2), a = a, r, H, Q, K = 2){
+  - cumsum(growth(x = x, r = r, K = K) - 
+           consumption(x = x, a = a, H = H, Q = Q))
+}
+potential_curves <- apply(samples, 1, function(row){
+  potential(x = x, a = a, r = exp(row['log_r']), 
+            H = exp(row['log_H']), Q = exp(row['log_Q']), K = K)
+})
+subset <- sample(1:nrow(samples), min(400, nrow(samples)))
+matplot(x, potential_curves[, subset], type = "l", lty = 1,
+        col = scales::alpha(1, 1e-2), lwd = 2)
+lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 ```
