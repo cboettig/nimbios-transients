@@ -346,3 +346,90 @@ stopCluster(cl)
 matplot(mus, type = "l", col = scales::alpha(1, 0.01), lty = 1)
 lines(cmodel$mu)
 ```
+
+```{r estimation_intro, cache = T, eval = F}
+N_intro <- 700
+constants$N <- N_intro
+model <- nimbleModel(code = may, constants = constants, inits = inits)
+model$setData(x = cmodel$x[1:N_intro])
+cmodel <- compileNimble(model)
+## block sampler
+system.time({
+  mcmcConf <- configureMCMC(model)
+  mcmcConf$getSamplers()
+  mcmcConf$removeSamplers(c("x0"))
+  mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", 
+                                 "log_H", "log_Q", "log_sigma"), 
+                      type = 'RW_block')
+  mcmcConf$getSamplers()
+})
+system.time({
+  mcmc <- buildMCMC(mcmcConf)
+  Cmcmc <- compileNimble(mcmc, project = model)
+})
+##
+n_iterations <- 1e4
+system.time({
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2)
+})
+samples <- as.matrix(Cmcmc$mvSamples)
+```
+
+```{r trace_plots_intro, fig.height=10, eval = F}
+layout(matrix(1:8, 4, 2))
+plot(exp(samples[, 'log_r']), type = "l", main = "r")
+abline(h = r)
+plot(exp(samples[, 'log_K']), type = "l", main = "K")
+abline(h = K)
+plot(exp(samples[, 'log_a']), type = "l", main = "a", 
+     ylim = range(exp(samples[, 'log_a']), a))
+abline(h = a)
+plot(exp(samples[, 'log_H']), type = "l", main = "H")
+abline(h = H)
+plot(exp(samples[, 'log_Q']), type = "l", main = "Q", log = "y")
+abline(h = Q)
+plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma")
+abline(h = sigma)
+plot(samples[, 'x0'], type = "l", main = "x0")
+abline(h = x0)
+corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
+```
+
+```{r potential_curves_intro, cache = T, eval = F}
+x <- seq(0, 2, l=1e2)
+potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
+  - cumsum(growth(x = x, r = r, K = K) - 
+           consumption(x = x, a = a, H = H, Q = Q))
+}
+potential_curves <- apply(samples, 1, function(row){
+  potential(x = x, a = exp(row['log_a']), r = exp(row['log_r']), 
+            H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))
+})
+subset <- sample(1:nrow(samples), min(400, nrow(samples)))
+matplot(x, potential_curves[, subset], type = "l", lty = 1,
+        col = scales::alpha(1, 1e-2), lwd = 2)
+lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+```
+
+```{r posterior_pop_trajectory_draws_intro, cache = T, dev = "png", eval = F}
+library(parallel)
+cl <- makeForkCluster(2)
+mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
+                function(row){
+  x <- rep(NA, N); x[1] <- row['x0']
+  mu <- rep(NA, N - 1)
+  for(t in 1:(N - 1)){
+    mu[t] <- 
+      x[t] + x[t] * exp(row['log_r']) * 
+        (1 - x[t] / exp(row['log_K'])) - 
+      exp(row['log_a']) * 
+        x[t]^exp(row['log_Q']) / (x[t]^(row['log_Q']) + 
+      exp(row['log_H'])^(row['log_Q']))
+    x[t + 1] <- rtruncnorm(mean = mu[t], sd = exp(row['log_sigma']))
+  }
+  return(mu)
+})
+stopCluster(cl)
+matplot(mus, type = "l", col = scales::alpha(1, 0.01), lty = 1)
+lines(cmodel$mu)
+```
