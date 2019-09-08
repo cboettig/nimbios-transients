@@ -41,7 +41,7 @@ theory %>%
   geom_line(lwd = 1)
 ```
 
-```{r nimble_model, cache = T}
+```{r nimble_model}
 library(nimble)
 ## define truncated normal distribution ----
 dtruncnorm <- nimbleFunction(
@@ -80,6 +80,7 @@ may <- nimble::nimbleCode({
 })
 # constants ----
 constants <- list(
+  N = N,
   mu_r = log(r), sd_r = 1,
   mu_K = log(K), sd_K = 1,
   mu_a = log(a), sd_a = 1,
@@ -97,7 +98,7 @@ model <- nimbleModel(code = may, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ```
 
-```{r simulate, cache = T}
+```{r simulate}
 set.seed(1234)
 simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
@@ -159,7 +160,7 @@ abline(v = cmodel$sigma)
 
 ```
 
-```{r likelihood_surfaces_2D, cache = F}
+```{r likelihood_surfaces_2D, cache = T}
 ll_QH <- apply(expand.grid(grid_Q, grid_H), 1, function(pair) 
   if(pair[2] > (0.6 / 3) * pair[1] + 0.18 - (0.6 / 3)) NA else 
   get_ll(a = cmodel$a, x = cmodel$x, r = cmodel$r, K = cmodel$K,
@@ -251,6 +252,28 @@ matplot(x, potential_curves[, subset], type = "l", lty = 1,
 lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 ```
 
+```{r posterior_pop_trajectory_draws, cache = T, dev = "png"}
+library(parallel)
+cl <- makeForkCluster(2)
+mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
+                function(row){
+  x <- rep(NA, N); x[1] <- row['x0']
+  mu <- rep(NA, N - 1)
+  for(t in 1:(N - 1)){
+    mu[t] <- 
+      x[t] + x[t] * exp(row['log_r']) * 
+        (1 - x[t] / exp(row['log_K'])) - 
+      exp(row['log_a']) * 
+        x[t]^exp(row['log_Q']) / (x[t]^(row['log_Q']) + 
+      exp(row['log_H'])^(row['log_Q']))
+    x[t + 1] <- rtruncnorm(mean = mu[t], sd = exp(row['log_sigma']))
+  }
+  return(mu)
+})
+stopCluster(cl)
+matplot(mus, type = "l", col = scales::alpha(1, 0.01), lty = 1)
+lines(cmodel$mu)
+```
 Notice $a$, $r$, and $K$ are highly correlated. Taking out two of them stablizes somewhat, but dependence in the posterior distributions arises between other variables.
 
 ```{r estimation_fix_a_K, cache = T}
@@ -292,16 +315,34 @@ corrplot::corrplot(cor(samples[, c("log_r", "log_H", "log_Q", "log_sigma", "x0")
 
 ```{r potential_curves_no_a_K, cache = T}
 x <- seq(0, 2, l=1e2)
-potential <- function(x = seq(0, 2, l = 1e2), a = a, r, H, Q, K = 2){
-  - cumsum(growth(x = x, r = r, K = K) - 
-           consumption(x = x, a = a, H = H, Q = Q))
-}
 potential_curves <- apply(samples, 1, function(row){
-  potential(x = x, a = a, r = exp(row['log_r']), 
-            H = exp(row['log_H']), Q = exp(row['log_Q']), K = K)
+  potential(x = x, a = exp(row['log_a']), r = exp(row['log_r']), 
+            H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))
 })
-subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 matplot(x, potential_curves[, subset], type = "l", lty = 1,
         col = scales::alpha(1, 1e-2), lwd = 2)
 lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+```
+
+```{r posterior_pop_trajectory_draws_no_a_K, cache = T, dev = "png"}
+library(parallel)
+cl <- makeForkCluster(2)
+mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
+                function(row){
+  x <- rep(NA, N); x[1] <- row['x0']
+  mu <- rep(NA, N - 1)
+  for(t in 1:(N - 1)){
+    mu[t] <- 
+      x[t] + x[t] * exp(row['log_r']) * 
+        (1 - x[t] / exp(row['log_K'])) - 
+      exp(row['log_a']) * 
+        x[t]^exp(row['log_Q']) / (x[t]^(row['log_Q']) + 
+      exp(row['log_H'])^(row['log_Q']))
+    x[t + 1] <- rtruncnorm(mean = mu[t], sd = exp(row['log_sigma']))
+  }
+  return(mu)
+})
+stopCluster(cl)
+matplot(mus, type = "l", col = scales::alpha(1, 0.01), lty = 1)
+lines(cmodel$mu)
 ```
