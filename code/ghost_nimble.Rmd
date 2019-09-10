@@ -9,6 +9,8 @@ output:
 
 ```{r library, message=F}
 library(tidyverse)
+library(parallel)
+library(nimble)
 ```
 
 ```{r parameters}
@@ -42,7 +44,6 @@ theory %>%
 ```
 
 ```{r nimble_model}
-library(nimble)
 ## define truncated normal distribution ----
 dtruncnorm <- nimbleFunction(
   run = function(x = double(0), mean = double(0), 
@@ -99,7 +100,7 @@ cmodel <- compileNimble(model)
 ```
 
 ```{r simulate}
-set.seed(1234)
+set.seed(1)
 simulate(cmodel, nodes = c('x', 'mu'))
 df <- tibble(t = seq_along(cmodel$x), x = cmodel$x)
 ```
@@ -236,7 +237,7 @@ abline(h = x0)
 corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "x0")]))
 ```
 
-```{r potential_curves, cache = T}
+```{r potential_curves, cache = T, dev = "png"}
 x <- seq(0, 2, l=1e2)
 potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
   - cumsum(growth(x = x, r = r, K = K) - 
@@ -253,7 +254,6 @@ lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 ```
 
 ```{r posterior_pop_trajectory_draws, cache = T, dev = "png"}
-library(parallel)
 cl <- makeForkCluster(2)
 mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
                 function(row){
@@ -264,8 +264,8 @@ mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1,
       x[t] + x[t] * exp(row['log_r']) * 
         (1 - x[t] / exp(row['log_K'])) - 
       exp(row['log_a']) * 
-        x[t]^exp(row['log_Q']) / (x[t]^(row['log_Q']) + 
-      exp(row['log_H'])^(row['log_Q']))
+        x[t]^exp(row['log_Q']) / (x[t]^exp(row['log_Q']) + 
+      exp(row['log_H'])^exp(row['log_Q']))
     x[t + 1] <- rtruncnorm(mean = mu[t], sd = exp(row['log_sigma']))
   }
   return(mu)
@@ -295,27 +295,27 @@ n_iterations <- 1e4
 system.time({
   Cmcmc$run(n_iterations, nburnin = n_iterations / 2)
 })
-samples <- as.matrix(Cmcmc$mvSamples)
+samples_no_a_K <- as.matrix(Cmcmc$mvSamples)
 ```
 
 ```{r trace_plots_no_a_K, fig.height=10}
 layout(matrix(1:6, 3, 2))
-plot(exp(samples[, 'log_r']), type = "l", main = "r")
+plot(exp(samples_no_a_K[, 'log_r']), type = "l", main = "r")
 abline(h = r)
-plot(exp(samples[, 'log_H']), type = "l", main = "H")
+plot(exp(samples_no_a_K[, 'log_H']), type = "l", main = "H")
 abline(h = H)
-plot(exp(samples[, 'log_Q']), type = "l", main = "Q", log = "y")
+plot(exp(samples_no_a_K[, 'log_Q']), type = "l", main = "Q", log = "y")
 abline(h = Q)
-plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma")
+plot(exp(samples_no_a_K[, 'log_sigma']), type = "l", main = "sigma")
 abline(h = sigma)
-plot(samples[, 'x0'], type = "l", main = "x0")
+plot(samples_no_a_K[, 'x0'], type = "l", main = "x0")
 abline(h = x0)
-corrplot::corrplot(cor(samples[, c("log_r", "log_H", "log_Q", "log_sigma", "x0")]))
+corrplot::corrplot(cor(samples_no_a_K[, c("log_r", "log_H", "log_Q", "log_sigma", "x0")]))
 ```
 
-```{r potential_curves_no_a_K, cache = T}
+```{r potential_curves_no_a_K, cache = T, dev="png"}
 x <- seq(0, 2, l=1e2)
-potential_curves <- apply(samples, 1, function(row){
+potential_curves <- apply(samples_no_a_K, 1, function(row){
   potential(x = x, a = exp(row['log_a']), r = exp(row['log_r']), 
             H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))
 })
@@ -324,10 +324,9 @@ matplot(x, potential_curves[, subset], type = "l", lty = 1,
 lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 ```
 
-```{r posterior_pop_trajectory_draws_no_a_K, cache = T, dev = "png"}
-library(parallel)
+```{r posterior_pop_trajectory_draws_no_a_K, cache = T, dev="png"}
 cl <- makeForkCluster(2)
-mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
+mus_no_a_K <- parApply(cl, samples_no_a_K[sample(1:nrow(samples_no_a_K), 100), ], 1, 
                 function(row){
   x <- rep(NA, N); x[1] <- row['x0']
   mu <- rep(NA, N - 1)
@@ -336,15 +335,16 @@ mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1,
       x[t] + x[t] * exp(row['log_r']) * 
         (1 - x[t] / exp(row['log_K'])) - 
       exp(row['log_a']) * 
-        x[t]^exp(row['log_Q']) / (x[t]^(row['log_Q']) + 
-      exp(row['log_H'])^(row['log_Q']))
+        x[t]^exp(row['log_Q']) / (x[t]^exp(row['log_Q']) + 
+      exp(row['log_H'])^exp(row['log_Q']))
     x[t + 1] <- rtruncnorm(mean = mu[t], sd = exp(row['log_sigma']))
   }
   return(mu)
 })
 stopCluster(cl)
-matplot(mus, type = "l", col = scales::alpha(1, 0.01), lty = 1)
+matplot(mus_no_a_K, type = "l", col = scales::alpha(1, 0.01), lty = 1)
 lines(cmodel$mu)
+
 ```
 
 ```{r estimation_intro, cache = T, eval = F}
@@ -412,7 +412,6 @@ lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 ```
 
 ```{r posterior_pop_trajectory_draws_intro, cache = T, dev = "png", eval = F}
-library(parallel)
 cl <- makeForkCluster(2)
 mus <- parApply(cl, samples[sample(1:nrow(samples), 100), ], 1, 
                 function(row){
