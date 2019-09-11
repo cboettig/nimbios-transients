@@ -65,6 +65,6 @@ goosmall <- list(x=x2, N = length(x2))
 
 # try to just fit a, fix everything else
 goobera = stan('ghostfit_asimple.stan', data = goo,
-               chains=4, iter = 1500, cores=4)
+   chains=4, iter = 1500, cores=4)
 
 sumer_asimple <- summary(goobera)$summary
