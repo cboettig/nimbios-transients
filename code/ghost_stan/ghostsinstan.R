@@ -1,13 +1,19 @@
 ## Started 30 May 2019 ##
 ## By Lizzie ##
 
+## Last udpated 11 Septemer 2019 ##
+
+## Next steps are ...
+# (1) Check that model is properly coded
+# (2) Scale up to test on many runs of data...
+
 library(rstan)
 library(nimble)
 
-setwd("~/Documents/git/projects/misc/miscmisc/nimBios2019/nimbios-transients")
+setwd("~/Documents/git/projects/misc/miscmisc/nimBios2019/nimbios-transients/code/ghost_stan")
 
 if(FALSE){
-d <- read.csv("example_cb2.csv")
+d <- read.csv("data/example_cb2.csv")
 goo <- list(x=d$x, N = nrow(d))
 }
 
@@ -43,11 +49,10 @@ launch_shinystan(goober)
 
 sumer <- summary(goober)$summary
 
-summary(goobera)$summary
 
 # p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = .01, a = 0.023, N = 1e4)
 
-# priors
+# look at priors
 mean(rlnorm(1000, 5, 0.1)) # Q
 mean(rlnorm(1000, 0.38, 0.1)) # H
 mean(rlnorm(1000, 0.233, 0.1)) # a 
@@ -58,5 +63,8 @@ mean(rlnorm(1000, 0, 1)) # x0
 x2 = x[seq(1, length(x), 5)]
 goosmall <- list(x=x2, N = length(x2))
 
-goobera = stan('ghostfit_a.stan', data = goo,
+# try to just fit a, fix everything else
+goobera = stan('ghostfit_asimple.stan', data = goo,
                chains=4, iter = 1500, cores=4)
+
+sumer_asimple <- summary(goobera)$summary
