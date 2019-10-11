@@ -1,0 +1,123 @@
+---
+title: "Effect of variance on dynamics"
+author: "Jody Reimer"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document: default
+---
+
+```{r library, message=F}
+library(tidyverse)
+library(nimble)
+library(ecp)
+```
+  
+```{r}
+n.its <- 1000
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = 0, a=0.023, N = 2.7e3, t.step = 1)
+# note: you may need to make N larger for small values of sigma (e.g., N = 3e3 is good for sigma=0)
+growth <- function(x, p) x * p$r * (1 - x / p$K)
+consumption <- function(x,p) p$a * x ^ p$Q / (x^p$Q + p$H^p$Q)
+```
+
+```{r, message=FALSE}
+# Define stochastic model in BUGS notation
+may  <- nimble::nimbleCode({
+  x[1] <- x0
+  for(t in 1:((1/t.step)*N-1)){
+    # Determinstic mean looks like standard R
+    mu[t] <- x[t] + t.step*(x[t] * r * (1 - x[t] / K)  - a * x[t] ^ Q / (x[t] ^ Q + H ^ Q))
+    # Note the use of ~ in BUGS to show 'distributed as normal' 
+    y[t+1] ~ dnorm(mu[t], sd = sigma*mu[t]*sqrt(t.step)) # or should this be lognormal?
+    # note: since variance scales linearly with time, sd scales with the square root of time
+    x[t+1] <- max(y[t+1],0)
+  }
+})
+model <- nimbleModel(may,constants = p, inits = list(x0 = 0.3))
+cmodel <- model #compileNimble(model)
+```
+
+sigma = 0 (i.e., deterministic core)
+
+```{r, message=F}
+simulate(cmodel)
+df <- tibble(t = p$t.step*seq_along(cmodel$x), x.sigma0 = cmodel$x)
+sigma0 = df
+df %>% ggplot(aes(t, x.sigma0)) + geom_line()
+```
+sigma = 0.005; simulate n.ites replicates and take the mean 
+
+```{r, message=F}
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = 0.005, a=0.023, N = 2.7e3, t.step = 1)
+model <- nimbleModel(may,constants = p, inits = list(x0 = 0.3))
+cmodel <- model #compileNimble(model)
+df <- map_dfr(1:n.its, 
+  function(i){
+    simulate(cmodel)
+    tibble(t = p$t.step*seq_along(cmodel$x), x = cmodel$x, reps = i)
+   })
+df.reps <- df %>% spread(reps,x)
+sigma0.005 = tibble(t = p$t.step*seq_along(cmodel$x),x.sigma0.005=rowMeans(df.reps[,-1]))
+ggplot() + geom_line(data = df, aes(t,x,group=reps), alpha=.1) +
+  geom_line(data = sigma0.005,aes(t,x.sigma0.005),color="green",)
+
+```
+
+sigma = 0.01; simulate n.ites replicates and take the mean 
+
+```{r, message=F}
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = 0.01, a=0.023, N = 2.7e3, t.step = 1)
+model <- nimbleModel(may,constants = p, inits = list(x0 = 0.3))
+cmodel <- model #compileNimble(model)
+df <- map_dfr(1:n.its, 
+  function(i){
+    simulate(cmodel)
+    tibble(t = p$t.step*seq_along(cmodel$x), x = cmodel$x, reps = i)
+   })
+df.reps <- df %>% spread(reps,x)
+sigma0.01 = tibble(t = p$t.step*seq_along(cmodel$x),x.sigma0.01=rowMeans(df.reps[,-1]))
+ggplot() + geom_line(data = df, aes(t,x,group=reps), alpha=.1) +
+  geom_line(data = sigma0.01,aes(t,x.sigma0.01),color="red",)
+```
+```{r, message=F}
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = 0.015, a=0.023, N = 2.7e3, t.step = 1)
+model <- nimbleModel(may,constants = p, inits = list(x0 = 0.3))
+cmodel <- model #compileNimble(model)
+df <- map_dfr(1:n.its, 
+  function(i){
+    simulate(cmodel)
+    tibble(t = p$t.step*seq_along(cmodel$x), x = cmodel$x, reps = i)
+   })
+df.reps <- df %>% spread(reps,x)
+sigma0.015 = tibble(t = p$t.step*seq_along(cmodel$x),x.sigma0.015=rowMeans(df.reps[,-1]))
+ggplot() + geom_line(data = df, aes(t,x,group=reps), alpha=.1) +
+  geom_line(data = sigma0.015,aes(t,x.sigma0.015),color="yellow",)
+```
+
+```{r, message=F}
+p <- list(r = .05, K = 2, Q = 5, H = .38, sigma = 0.02, a=0.023, N = 2.7e3, t.step = 1)
+model <- nimbleModel(may,constants = p, inits = list(x0 = 0.3))
+cmodel <- model #compileNimble(model)
+df <- map_dfr(1:n.its, 
+  function(i){
+    simulate(cmodel)
+    tibble(t = p$t.step*seq_along(cmodel$x), x = cmodel$x, reps = i)
+   })
+df.reps <- df %>% spread(reps,x)
+sigma0.02 = tibble(t = p$t.step*seq_along(cmodel$x),x.sigma0.02=rowMeans(df.reps[,-1]))
+ggplot() + geom_line(data = df, aes(t,x,group=reps), alpha=.1) +
+  geom_line(data = sigma0.02,aes(t,x.sigma0.02),color="blue",)
+```
+
+```{r, message=F}
+allsigmas = merge(sigma0, sigma0.005, by="t")
+allsigmas = merge(allsigmas, sigma0.01, by="t")
+allsigmas = merge(allsigmas, sigma0.015, by="t")
+allsigmas = merge(allsigmas, sigma0.02, by="t")
+allsigmasMelted <- reshape2::melt(allsigmas, id.var='t')
+ggplot(allsigmasMelted, aes(t, value, col=variable)) + geom_line()
+setwd("C:/Users/Jody/Google Drive/University of Utah/Transients paper")
+ggsave("Effect_of_variance.pdf")
+```
+
+
