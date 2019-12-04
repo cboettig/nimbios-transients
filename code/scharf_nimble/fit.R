@@ -44,6 +44,6 @@ system.time({
 })
 samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
-save(samples, file = paste0("samples_", seed, ".RData"))
+save(samples, file = paste0("../../data/scharf_nimble/samples_", seed, ".RData"))
 ## source plot.R ----
 source("plot.R")

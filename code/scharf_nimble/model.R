@@ -27,7 +27,7 @@ rtruncnorm <- nimbleFunction(
       draw <- rnorm(n = 1, mean = mean, sd = sd)
     return(draw)
   })
-## Define stochastic model in BUGS notation ----
+## define stochastic model in BUGS notation ----
 code <- nimble::nimbleCode({
   log(r) ~ dnorm(mu_r, sd_r)
   log(K) ~ dnorm(mu_K, sd_K)
