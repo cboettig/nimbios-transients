@@ -1,5 +1,7 @@
 # ## load samples ----
 # load("samples.RData")
+## device ----
+pdf(filename = "trace_plots.pdf")
 ## trace plots ----
 layout(matrix(1:8, 4, 2))
 par(mar = c(2, 2, 4, 2))
@@ -20,6 +22,10 @@ abline(h = sigma)
 plot(samples[, 'mu0'], type = "l", main = "mu0", ylab = "")
 abline(h = mu0)
 corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "mu0")]))
+## dev.off ----
+dev.off()
+## device ----
+pdf("posterior_potentials.pdf")
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
@@ -37,3 +43,6 @@ layout(1)
 matplot(x, potential_curves[, subset], type = "l", lty = 1,
         col = scales::alpha(1, 1e-2), lwd = 2)
 lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+
+## dev.off ----
+dev.off()

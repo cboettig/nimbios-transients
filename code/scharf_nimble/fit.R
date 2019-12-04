@@ -21,7 +21,6 @@ cmodel <- compileNimble(model)
 ## set seed + simulate ----
 set.seed(1234)
 simulate(cmodel, nodes = c('x', 'mu'))
-plot(cmodel$x, type = "l")
 cmodel$setData("x")
 ## specify block sampler ----
 mcmcConf <- configureMCMC(cmodel)
@@ -45,3 +44,5 @@ system.time({
 samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
 save(samples, file = "samples.RData")
+## source plot.R ----
+source("plot.R")
