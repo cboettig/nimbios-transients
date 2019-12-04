@@ -1,7 +1,9 @@
 # ## load samples ----
-# load("samples.RData")
+# source("model.R")
+# seed <- 1234
+# load(paste0("samples_", seed, ".RData"))
 ## device ----
-pdf(filename = "trace_plots.pdf")
+pdf(file = paste0("trace_plots_", seed, ".pdf"))
 ## trace plots ----
 layout(matrix(1:8, 4, 2))
 par(mar = c(2, 2, 4, 2))
@@ -25,7 +27,7 @@ corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", 
 ## dev.off ----
 dev.off()
 ## device ----
-pdf("posterior_potentials.pdf")
+pdf(file = paste0("posterior_potentials_", seed, ".pdf"))
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}

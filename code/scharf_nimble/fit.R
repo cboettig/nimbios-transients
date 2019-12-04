@@ -19,7 +19,8 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ----
-set.seed(1234)
+seed <- 1
+set.seed(seed)
 simulate(cmodel, nodes = c('x', 'mu'))
 cmodel$setData("x")
 ## specify block sampler ----
@@ -43,6 +44,6 @@ system.time({
 })
 samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
-save(samples, file = "samples.RData")
+save(samples, file = paste0("samples_", seed, ".RData"))
 ## source plot.R ----
 source("plot.R")
