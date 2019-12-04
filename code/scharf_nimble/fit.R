@@ -19,8 +19,9 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ----
-set.seed(1)
+set.seed(1234)
 simulate(cmodel, nodes = c('x', 'mu'))
+plot(cmodel$x, type = "l")
 cmodel$setData("x")
 ## specify block sampler ----
 mcmcConf <- configureMCMC(cmodel)
@@ -31,15 +32,16 @@ mcmcConf$addSampler(target = c("mu0", "log_r", "log_K", "log_a",
                                "log_H", "log_Q", "log_sigma"),
                     type = 'RW_block')
 mcmcConf$getSamplers()
+## compile and run MCMC ----
 system.time({
   mcmc <- buildMCMC(mcmcConf)
   Cmcmc <- compileNimble(mcmc, project = model)
 })
-##
-n_iterations <- 1e5
+n_iterations <- 2e5
 system.time({
   Cmcmc$run(n_iterations, nburnin = n_iterations / 2, 
             thin = n_iterations / 2 / 5e3)
 })
 samples <- as.matrix(Cmcmc$mvSamples)
+## save samples ----
 save(samples, file = "samples.RData")
