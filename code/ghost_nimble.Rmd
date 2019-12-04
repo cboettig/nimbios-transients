@@ -200,9 +200,12 @@ system.time({
   mcmcConf <- configureMCMC(model)
   mcmcConf$getSamplers()
   mcmcConf$removeSamplers(c("x0"))
+  # mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", 
+  #                                "log_H", "log_Q", "log_sigma"), 
+  #                     type = 'RW_block')
   mcmcConf$addSampler(target = c("log_r", "log_K", "log_a", 
                                  "log_H", "log_Q", "log_sigma"), 
-                      type = 'RW_block')
+                      type = 'AF_slice')
   mcmcConf$getSamplers()
 })
 system.time({
