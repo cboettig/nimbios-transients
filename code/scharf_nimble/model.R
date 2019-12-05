@@ -2,10 +2,10 @@
 library(parallel)
 library(nimble)
 ## parameters ----
-N <- 1e4
+N <- 1e3
 r <- 0.05; K <- 2
-a <- 0.023; H <- 0.3; Q <- 3
-x0 <- 0.2; sigma <- 0.02
+a <- 0.023; H <- 0.38; Q <- 5
+x0 <- 0.3; sigma <- 0.02
 ## define truncated normal distribution ----
 dtruncnorm <- nimbleFunction(
   run = function(x = double(0), mean = double(0), 
@@ -35,9 +35,13 @@ code <- nimble::nimbleCode({
   log(Q) ~ dnorm(mu_Q, sd_Q)
   log(sigma) ~ dnorm(mu_sigma, sd_sigma)
   x[1] <- x0
-  for(t in 1:(N - 1)){
-    mu[t + 1] <- x[t] + x[t] * r * (1 - x[t] / K) - a * x[t]^Q / (x[t]^Q + H^Q)
-    sd_x[t + 1] <- mu[t + 1] * sigma
-    x[t + 1] ~ dtruncnorm(mean = mu[t + 1], sd = sd_x[t + 1])
+  for(t in 1:((1/t.step)*N-1)){
+    # Determinstic mean looks like standard R
+    mu[t] <- x[t] + t.step*(x[t] * r * (1 - x[t] / K)  - a * x[t] ^ Q / (x[t] ^ Q + H ^ Q))
+    # Note the use of ~ in BUGS to show 'distributed as normal' 
+    sd_y[t] <- sigma*mu[t]*sqrt(t.step)
+    y[t+1] ~ dnorm(mu[t], sd = sd_y[t]) # or should this be lognormal?
+    # note: since variance scales linearly with time, sd scales with the square root of time
+    x[t+1] <- max(y[t+1],0)
   }
 })

@@ -2,7 +2,7 @@
 source("model.R")
 ## constants ----
 constants <- list(
-  N = N, x0 = x0,
+  N = N, x0 = x0, t.step = 1/2,
   mu_r = log(r), sd_r = 1,
   mu_K = log(K), sd_K = 1,
   mu_a = log(a), sd_a = 1,
@@ -20,17 +20,17 @@ cmodel <- compileNimble(model)
 ## set seed + simulate ----
 seed <- 270
 set.seed(seed)
-simulate(cmodel, nodes = c("x", "mu", "sd_x"))
+simulate(cmodel, nodes = c("x", "mu", "y", "sd_y"))
 cmodel$setData("x")
 ## specify block sampler ----
 mcmcConf <- configureMCMC(cmodel)
-mcmcConf$getSamplers()
+head(mcmcConf$getSamplers(), 10)
 mcmcConf$removeSamplers(c("log_r", "log_K", "log_a",
                           "log_H", "log_Q", "log_sigma"))
 mcmcConf$addSampler(target = c("log_r", "log_K", "log_a",
                                "log_H", "log_Q", "log_sigma"),
                     type = 'RW_block')
-mcmcConf$getSamplers()
+tail(mcmcConf$getSamplers(), 10)
 ## compile and run MCMC ----
 system.time({
   mcmc <- buildMCMC(mcmcConf)
