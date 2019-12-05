@@ -3,12 +3,13 @@ source("model.R")
 ## constants ----
 constants <- list(
   N = N,
+  t.step = 1/2,
   mu_r = log(r), sd_r = 1,
   mu_K = log(K), sd_K = 1,
   mu_a = log(a), sd_a = 1,
   mu_H = log(H), sd_H = 1,
   mu_Q = log(Q), sd_Q = 1,
-  mean_mu0 = mu0, sd_mu0 = 1,
+  mean_x0 = x0, sd_x0 = 1,
   mu_sigma = log(sigma), sd_sigma = 1
 )
 ## inits ----
@@ -19,7 +20,7 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ----
-seed <- 1
+seed <- 270
 set.seed(seed)
 simulate(cmodel, nodes = c('x', 'mu'))
 cmodel$setData("x")
