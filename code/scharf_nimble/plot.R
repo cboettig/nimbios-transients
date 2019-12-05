@@ -3,9 +3,9 @@
 # seed <- 1234
 # load(paste0("../../data/scharf_nimble/samples_", seed, ".RData"))
 ## device ----
-pdf(file = paste0("../../figs/trace_plots_", seed, ".pdf"))
+pdf(file = paste0("../../figs/scharf_nimble/trace_plots_", seed, ".pdf"))
 ## trace plots ----
-layout(matrix(1:8, 4, 2))
+layout(matrix(c(1:7, 0), 4, 2))
 par(mar = c(2, 2, 4, 2))
 plot(exp(samples[, 'log_r']), type = "l", main = "r", ylab = "")
 abline(h = r)
@@ -21,13 +21,11 @@ plot(exp(samples[, 'log_Q']), type = "l", main = "Q", ylab = "",
 abline(h = Q)
 plot(exp(samples[, 'log_sigma']), type = "l", main = "sigma", ylab = "")
 abline(h = sigma)
-plot(samples[, 'mu0'], type = "l", main = "mu0", ylab = "")
-abline(h = mu0)
-corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma", "mu0")]))
+corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma")]))
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(file = paste0("../../figs/posterior_potentials_", seed, ".pdf"))
+pdf(file = paste0("../../figs/scharf_nimble/posterior_potentials_", seed, ".pdf"))
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
