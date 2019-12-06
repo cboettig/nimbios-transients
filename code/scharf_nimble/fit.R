@@ -17,11 +17,17 @@ inits <- list(log_r = log(r), log_K = log(K),
 ## define model, set data, and compile ----
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
-## set seed + simulate ----
-seed <- 1
+## set seed + simulate ---- 
+seed <- 270
 set.seed(seed)
 simulate(cmodel, nodes = c("x", "mu", "sd_x"))
 cmodel$setData("x")
+## device ----
+pdf(file = paste0("../../figs/scharf_nimble/sim_traj_", seed, ".pdf"))
+## plot x ----
+plot(seq(1, N, l = N/constants$t.step), cmodel$x, type = "l", ylab = "x", xlab = "time")
+## dev.off ----
+dev.off()
 ## specify block sampler ----
 mcmcConf <- configureMCMC(cmodel)
 head(mcmcConf$getSamplers(), 10)
