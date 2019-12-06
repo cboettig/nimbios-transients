@@ -18,9 +18,9 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ----
-seed <- 270
+seed <- 1
 set.seed(seed)
-simulate(cmodel, nodes = c("x", "mu", "y", "sd_y"))
+simulate(cmodel, nodes = c("x", "mu", "sd_x"))
 cmodel$setData("x")
 ## specify block sampler ----
 mcmcConf <- configureMCMC(cmodel)
