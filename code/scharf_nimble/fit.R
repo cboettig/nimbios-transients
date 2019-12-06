@@ -2,7 +2,7 @@
 source("model.R")
 ## constants ----
 constants <- list(
-  N = N, x0 = x0, t.step = 1/2,
+  N = N, N_trajectories = N_trajectories, x0 = x0, t.step = 1/2,
   mu_r = log(r), sd_r = 1,
   mu_K = log(K), sd_K = 1,
   mu_a = log(a), sd_a = 1,
@@ -14,7 +14,7 @@ constants <- list(
 inits <- list(log_r = log(r), log_K = log(K), 
               log_a = log(a), log_H = log(H), 
               log_Q = log(Q), log_sigma = log(sigma))
-## define model, set data, and compile ----
+## define model, and compile ----
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ---- 
@@ -23,9 +23,10 @@ set.seed(seed)
 simulate(cmodel, nodes = c("x", "mu", "sd_x"))
 cmodel$setData("x")
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/sim_traj_", seed, ".pdf"))
+pdf(file = paste0("../../figs/scharf_nimble/sim_traj_", N_trajectories, "_", seed, ".pdf"))
 ## plot x ----
-plot(seq(1, N, l = N/constants$t.step), cmodel$x, type = "l", ylab = "x", xlab = "time")
+matplot(seq(1, N, l = N/constants$t.step), cmodel$x, type = "l", ylab = "x", xlab = "time", 
+        col = scales::alpha(1, 0.4), lty = 1)
 ## dev.off ----
 dev.off()
 ## specify block sampler ----
