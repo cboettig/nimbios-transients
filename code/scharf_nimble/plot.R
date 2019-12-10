@@ -1,9 +1,9 @@
 # ## load samples ----
 # source("model.R")
-# seed <- 1234
-# load(paste0("../../data/scharf_nimble/samples_", seed, ".RData"))
+# seed <- 270; N_trajectories <- 10
+# load(paste0("../../data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/trace_plots_", seed, ".pdf"))
+pdf(file = paste0("../../figs/scharf_nimble/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 ## trace plots ----
 layout(matrix(c(1:7, 7), 4, 2))
 par(mar = c(2, 2, 4, 2))
@@ -24,7 +24,7 @@ corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", 
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/posterior_potentials_", seed, ".pdf"), width = 10)
+pdf(file = paste0("../../figs/scharf_nimble/posterior_potentials_", N_trajectories, "_", seed, ".pdf"), width = 10)
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
@@ -53,5 +53,30 @@ matplot(x[-1], dpotential_curves[, subset], type = "l", lty = 1,
         main = "derivative of potential function", ylab = "", xlab = "population")
 lines(x[-1], diff(potential(x = x, a = a, r = r, H = H, Q = Q, K = K))/diff(x), lwd = 2)
 abline(h = 0, lwd = 2, lty = 3)
+## dev.off ----
+dev.off()
+## device ----
+pdf(file = paste0("../../figs/scharf_nimble/posterior_deterministic_core_", N_trajectories, "_", seed, ".pdf"), width = 10)
+## deterministic core ----
+core_curve <- function(a, r, H, Q, K, x0 = 0.3, t = (1:5e3) * 0.5, t.step = 0.5){
+  x <- rep(x0, length(t))
+  for(t_i in 1:(length(t) - 1)){
+    x[t_i + 1] <- x[t_i] + t.step * (x[t_i] * r * (1 - x[t_i] / K)  - a * x[t_i] ^ Q / (x[t_i] ^ Q + H ^ Q))
+  }
+  return(cbind(t, x))
+}
+subset <- sample(1:nrow(samples), min(400, nrow(samples)))
+deterministic_core <- apply(samples[subset, ], 1, function(row){
+  core_curve(a = exp(row['log_a']), r = exp(row['log_r']), 
+            H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))[, 2]
+})
+layout(1)
+matplot((1:5e3)/2, deterministic_core, type = "l", lty = 1, 
+        col = scales::alpha(1, 1e-1), lwd = 2, 
+        ylim = c(0, min(max(deterministic_core, 1.5, na.rm = T), 5)),
+        main = "potential function", ylab = "population", xlab = "time")
+lines(core_curve(a, r, H, Q, K), lwd = 3, lty = 2, col = "darkgreen")
+legend("topleft", lwd = 2, lty = c(1, 2), col = c(scales::alpha(1, 1e-1), "darkgreen"), 
+       legend = c("based on posterior draw", "true params"))
 ## dev.off ----
 dev.off()

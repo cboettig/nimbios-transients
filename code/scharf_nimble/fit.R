@@ -18,7 +18,7 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ---- 
-seed <- 270
+seed <- 1234
 set.seed(seed)
 simulate(cmodel, nodes = c("x", "mu", "sd_x"))
 cmodel$setData("x")
@@ -50,6 +50,6 @@ system.time({
 })
 samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
-save(samples, file = paste0("../../data/scharf_nimble/samples_", seed, ".RData"))
+save(samples, file = paste0("../../data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
 ## source plot.R ----
 source("plot.R")
