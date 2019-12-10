@@ -80,3 +80,6 @@ legend("topleft", lwd = 2, lty = c(1, 2), col = c(scales::alpha(1, 1e-1), "darkg
        legend = c("based on posterior draw", "true params"))
 ## dev.off ----
 dev.off()
+
+
+mean(apply(deterministic_core, 2, function(x) which.max(x > 1)))
