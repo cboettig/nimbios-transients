@@ -58,7 +58,7 @@ dev.off()
 ## device ----
 pdf(file = paste0("../../figs/scharf_nimble/posterior_deterministic_core_", N_trajectories, "_", seed, ".pdf"), width = 10)
 ## deterministic core ----
-core_curve <- function(a, r, H, Q, K, x0 = 0.3, t = (1:5e3) * 0.5, t.step = 0.5){
+core_curve <- function(a, r, H, Q, K, x0 = 0.3, t = (1:1e4) * 0.5, t.step = 0.5){
   x <- rep(x0, length(t))
   for(t_i in 1:(length(t) - 1)){
     x[t_i + 1] <- x[t_i] + t.step * (x[t_i] * r * (1 - x[t_i] / K)  - a * x[t_i] ^ Q / (x[t_i] ^ Q + H ^ Q))
@@ -71,15 +71,23 @@ deterministic_core <- apply(samples[subset, ], 1, function(row){
             H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))[, 2]
 })
 layout(1)
-matplot((1:5e3)/2, deterministic_core, type = "l", lty = 1, 
+matplot((1:1e4)/2, deterministic_core, type = "l", lty = 1, 
         col = scales::alpha(1, 1e-1), lwd = 2, 
-        ylim = c(0, min(max(deterministic_core, 1.5, na.rm = T), 5)),
+        ylim = c(0.2, min(max(deterministic_core, 1.5, na.rm = T), 5)),
         main = "potential function", ylab = "population", xlab = "time")
 lines(core_curve(a, r, H, Q, K), lwd = 3, lty = 2, col = "darkgreen")
 legend("topleft", lwd = 2, lty = c(1, 2), col = c(scales::alpha(1, 1e-1), "darkgreen"), 
        legend = c("based on posterior draw", "true params"))
 ## dev.off ----
 dev.off()
-
-
-mean(apply(deterministic_core, 2, function(x) which.max(x > 1)))
+## transition time ----
+deterministic_core_ <- apply(samples[subset, ], 1, function(row){
+  core_curve(t = (1:2e4) * 0.5, a = exp(row['log_a']), r = exp(row['log_r']), 
+             H = exp(row['log_H']), Q = exp(row['log_Q']), K = exp(row['log_K']))[, 2]
+})
+median(apply(deterministic_core_, 2, function(x){
+  if(max(x) < 1) 
+    1e4
+  else 
+    which.max(x > 1)
+  }))
