@@ -124,7 +124,7 @@ dpotential_curves_10 <- apply(samples_10, 1, function(row){
 })
 ## plot potential curves ----
 subset <- sample(1:nrow(samples_1), min(400, nrow(samples_1)))
-layout(matrix(1:4, 2, 2), width = c(1, 0.82))
+layout(matrix(1:4, 2, 2), width = c(1, 0.8))
 par(mar = c(1, 4, 3, 1))
 matplot(x, potential_curves_1[, subset], type = "l", lty = 1, 
         col = scales::alpha("black", 1e-2), lwd = 2, ylim = c(-0.2, 0.2),
