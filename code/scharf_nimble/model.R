@@ -5,7 +5,8 @@ library(nimble)
 N <- 1e3; N_trajectories <- 10
 r <- 0.05; K <- 2
 a <- 0.023; H <- 0.38; Q <- 5
-x0 <- rep(0.3, N_trajectories); sigma <- 0.02
+x0 <- rep(0.3, N_trajectories)
+sigma <- 0.02; sigma_me <- 0.05
 ## define "spike" normal distribution ----
 dspikenorm <- nimbleFunction(
   run = function(x = double(0), mean = double(0), 
@@ -41,12 +42,16 @@ code <- nimble::nimbleCode({
   log(H) ~ dnorm(mu_H, sd_H)
   log(Q) ~ dnorm(mu_Q, sd_Q)
   log(sigma) ~ dnorm(mu_sigma, sd_sigma)
+  log(sigma_me) ~ dnorm(mu_sigma_me, sd_sigma_me)
   for(i in 1:N_trajectories){
     x[1, i] <- x0[i]
-    for(t in 1:((1/t.step)*N-1)){
-      mu[t, i] <- x[t, i] + t.step*(x[t, i] * r * (1 - x[t, i] / K)  - a * x[t, i] ^ Q / (x[t, i] ^ Q + H ^ Q))
+    y[1, i] ~ dnorm(x[1, i], sd = sigma_me)
+    for(t in 1:N_t){
+      mu[t, i] <- x[t, i] + t.step*(x[t, i] * r * (1 - x[t, i] / K) - 
+                                      a * x[t, i] ^ Q / (x[t, i] ^ Q + H ^ Q))
       sd_x[t, i] <- sigma*mu[t, i]*sqrt(t.step)
       x[t + 1, i] ~ dspikenorm(mu[t, i], sd_x[t, i])    
+      y[t + 1, i] ~ dnorm(x[t + 1, i], sd = sigma_me)
     }
   }
 })
