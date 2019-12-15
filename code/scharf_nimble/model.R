@@ -2,7 +2,7 @@
 library(parallel)
 library(nimble)
 ## parameters ----
-N <- 1e3; N_trajectories <- 10
+N <- 1e3; N_trajectories <- 1e2
 r <- 0.05; K <- 2
 a <- 0.023; H <- 0.38; Q <- 5
 x0 <- rep(0.3, N_trajectories)
@@ -42,16 +42,16 @@ code <- nimble::nimbleCode({
   log(H) ~ dnorm(mu_H, sd_H)
   log(Q) ~ dnorm(mu_Q, sd_Q)
   log(sigma) ~ dnorm(mu_sigma, sd_sigma)
-  log(sigma_me) ~ dnorm(mu_sigma_me, sd_sigma_me)
+  # log(sigma_me) ~ dnorm(mu_sigma_me, sd_sigma_me)
   for(i in 1:N_trajectories){
     x[1, i] <- x0[i]
-    y[1, i] ~ dnorm(x[1, i], sd = sigma_me)
+    # y[1, i] ~ dnorm(x[1, i], sd = sigma_me)
     for(t in 1:N_t){
       mu[t, i] <- x[t, i] + t.step*(x[t, i] * r * (1 - x[t, i] / K) - 
                                       a * x[t, i] ^ Q / (x[t, i] ^ Q + H ^ Q))
       sd_x[t, i] <- sigma*mu[t, i]*sqrt(t.step)
       x[t + 1, i] ~ dspikenorm(mu[t, i], sd_x[t, i])    
-      y[t + 1, i] ~ dnorm(x[t + 1, i], sd = sigma_me)
+      # y[t + 1, i] ~ dnorm(x[t + 1, i], sd = sigma_me)
     }
   }
 })
