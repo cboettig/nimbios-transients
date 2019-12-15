@@ -1,4 +1,4 @@
-## compare n = 1 and n = 10 ----
+## compare n = 1, n = 10, and n = 100 ----
 ## load samples ----
 source("model.R")
 seed <- 270

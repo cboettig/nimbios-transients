@@ -22,7 +22,7 @@ inits <- list(log_r = log(r), log_K = log(K),
 model <- nimbleModel(code = code, constants = constants, inits = inits)
 cmodel <- compileNimble(model)
 ## set seed + simulate ---- 
-seed <- 1234
+seed <- 270
 set.seed(seed)
 simulate(cmodel, nodes = c(
   # "y", 
