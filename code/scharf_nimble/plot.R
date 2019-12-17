@@ -1,9 +1,9 @@
 # ## load samples ----
-# source("model.R")
+# source("code/scharf_nimble/model.R")
 # seed <- 270; N_trajectories <- 10
-# load(paste0("../../data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
+# load(paste0("data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/trace_plots_", N_trajectories, "_", seed, ".pdf"))
+pdf(file = paste0("figs/scharf_nimble/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 ## trace plots ----
 layout(matrix(c(1:7, 7), 4, 2))
 par(mar = c(2, 2, 4, 2))
@@ -24,7 +24,7 @@ corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", 
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/posterior_potentials_", N_trajectories, "_", seed, ".pdf"), width = 10)
+pdf(file = paste0("figs/scharf_nimble/posterior_potentials_", N_trajectories, "_", seed, ".pdf"), width = 10)
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
@@ -56,7 +56,7 @@ abline(h = 0, lwd = 2, lty = 3)
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/posterior_deterministic_core_", N_trajectories, "_", seed, ".pdf"), width = 10)
+pdf(file = paste0("figs/scharf_nimble/posterior_deterministic_core_", N_trajectories, "_", seed, ".pdf"), width = 10)
 ## deterministic core ----
 core_curve <- function(a, r, H, Q, K, x0 = 0.3, t = (1:1e4) * 0.5, t.step = 0.5){
   x <- rep(x0, length(t))

@@ -1,5 +1,5 @@
 ## source model.R ----
-source("model.R")
+source("code/scharf_nimble/model.R")
 ## constants ----
 constants <- list(
   N = N, N_trajectories = N_trajectories, x0 = x0, 
@@ -63,6 +63,6 @@ system.time({
 })
 samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
-save(samples, file = paste0("../../data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
+save(samples, file = paste0("data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
 ## source plot.R ----
-source("plot.R")
+source("code/scharf_nimble/plot.R")

@@ -1,16 +1,16 @@
 ## compare n = 1, n = 10, and n = 100 ----
 ## load samples ----
-source("model.R")
+source("code/scharf_nimble/model.R")
 seed <- 270
-load(paste0("../../data/scharf_nimble/samples_", 1, "_", seed, ".RData"))
+load(paste0("data/scharf_nimble/samples_", 1, "_", seed, ".RData"))
 samples_1 <- samples
-load(paste0("../../data/scharf_nimble/samples_", 10, "_", seed, ".RData"))
+load(paste0("data/scharf_nimble/samples_", 10, "_", seed, ".RData"))
 samples_10 <- samples
-load(paste0("../../data/scharf_nimble/samples_", 100, "_", seed, ".RData"))
+load(paste0("data/scharf_nimble/samples_", 100, "_", seed, ".RData"))
 samples_100 <- samples
 rm(samples); gc()
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/compare_plots_", seed, ".pdf"),
+pdf(file = paste0("figs/scharf_nimble/compare_plots_", seed, ".pdf"),
     height = 6)
 ## densities ----
 colors <- RColorBrewer::brewer.pal(5, "Greys")[2:5]
@@ -114,7 +114,7 @@ points(sigma, par()$usr[3], lwd = 2, xpd = T, pch = 4)
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(file = paste0("../../figs/scharf_nimble/compare_posterior_potentials_", seed, ".pdf"), height = 5)
+pdf(file = paste0("figs/scharf_nimble/compare_posterior_potentials_", seed, ".pdf"), height = 5)
 ## calc potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
