@@ -1,0 +1,1 @@
+Scripts are meant to be run from top directory

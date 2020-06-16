@@ -1,7 +1,7 @@
-# ## load samples ----
-# source("code/scharf_nimble/model.R")
-# seed <- 270; N_trajectories <- 10
-# load(paste0("data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
+## load samples ----
+source("model.R")
+seed <- 270; N_trajectories <- 10
+load(paste0("data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
 ## device ----
 pdf(file = paste0("figs/scharf_nimble/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 ## trace plots ----

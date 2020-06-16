@@ -1,5 +1,5 @@
 ## source model.R ----
-source("code/scharf_nimble/model.R")
+source("model.R")
 ## constants ----
 constants <- list(
   N = N, N_trajectories = N_trajectories, x0 = x0, 
