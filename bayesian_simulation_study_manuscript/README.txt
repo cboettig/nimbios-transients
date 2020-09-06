@@ -1,0 +1,1 @@
+Simulation study for Bayesian hierarchical model may be reproduced by running fit.R (which in turn sources other R scripts). Additional summary plots can be produced using compare_plot.R. Kullback-Leibler divergences between marginal prior and posterior distributions are computed using kl_divergence.R.
