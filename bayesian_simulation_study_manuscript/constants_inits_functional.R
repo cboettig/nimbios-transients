@@ -1,8 +1,6 @@
 ## parameter values ----
-N <- 1e3; N_trajectories <- 10
-r <- 0.05; K <- 2
-a <- 0.023; H <- 0.38; Q <- 5
-x0 <- 0.3
+N <- 1e3; N_trajectories <- 1
+degree <- 5
 sigma <- 0.02; sigma_me <- 0.01
 ## constants (priors) ----
 constants <- list(
@@ -16,11 +14,14 @@ constants <- list(
   # mu_Q = log(Q), sd_Q = 1,
   # mu_sigma = log(sigma), sd_sigma = 1,
   # mu_sigma_me = log(sigma_me), sd_sigma_me = 1,
-  r_shape = 2, r_rate = 20,
-  K_shape = 2, K_rate = 1,
-  a_shape = 2, a_rate = 20,
-  H_shape = 2, H_rate = 10,
-  Q_shape = 4, Q_rate = 1,
+  # r_shape = 2, r_rate = 20,
+  # K_shape = 2, K_rate = 1,
+  # a_shape = 2, a_rate = 20,
+  # H_shape = 2, H_rate = 10,
+  # Q_shape = 4, Q_rate = 1,
+  degree = 5,
+  beta_mean = rep(0, degree),
+  beta_prec = 1e-1 * diag(degree),
   sigma_shape = 1, sigma_rate = 100,
   sigma_me_shape = 1, sigma_me_rate = 100
 )
@@ -32,6 +33,7 @@ inits <- list(
   # log_H = log(H),
   # log_Q = log(Q), log_sigma = log(sigma),
   # log_sigma_me = log(sigma_me)
-  r = r, K = K, a = a, H = H, Q = Q, 
+  # r = r, K = K, a = a, H = H, Q = Q, 
+  beta = rnorm(5),
   sigma = sigma, sigma_me = sigma_me
 )

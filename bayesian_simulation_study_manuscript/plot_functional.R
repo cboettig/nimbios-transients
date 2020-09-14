@@ -22,27 +22,21 @@ pdf(file = paste0("fig/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 # abline(h = sigma)
 # corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma")]))
 ## trace plots ----
-variables <- c("r", "K", "a", "H", "Q", "sigma")
-if(INCLUDE_ME) variables <- c(variables, "sigma_me")
-layout(matrix(c(1:8), 4, 2))
-par(mar = c(2, 2, 4, 2))
-for(var in variables){
-  plot(samples[, var], type = "l", main = var, ylab = "")
-  abline(h = get(var))
-}
+variables <- c(paste0("beta[", 1:5, "]"), "sigma", "sigma_me")
+matplot(samples[, variables], type = "l")
 corrplot::corrplot(cor(samples[, variables]))
-## prior/post densities ----
-layout(matrix(c(1:8), 4, 2))
-par(mar = c(2, 2, 4, 2))
-for(var in variables){
-  plot(density(samples[, var], from = 0), main = var, 
-       xlim = range(0, get(var), samples[, var]))
-  xx <- seq(par()$usr[1], par()$usr[2], l = 2e2)
-  lines(xx, dgamma(xx, as.numeric(constants[paste0(var, "_shape")]),
-                   as.numeric(constants[paste0(var, "_rate")])), 
-        col = "gray", lty = 2)
-  points(get(var), par()$usr[3], xpd = T, pch = 8)
-}
+# ## prior/post densities ----
+# layout(matrix(c(1:8), 4, 2))
+# par(mar = c(2, 2, 4, 2))
+# for(var in variables){
+#   plot(density(samples[, var], from = 0), main = var, 
+#        xlim = range(0, get(var), samples[, var]))
+#   xx <- seq(par()$usr[1], par()$usr[2], l = 2e2)
+#   lines(xx, dgamma(xx, as.numeric(constants[paste0(var, "_shape")]),
+#                    as.numeric(constants[paste0(var, "_rate")])), 
+#         col = "gray", lty = 2)
+#   points(get(var), par()$usr[3], xpd = T, pch = 8)
+# }
 ## dev.off ----
 dev.off()
 ## device ----
@@ -75,9 +69,6 @@ matplot(x[-1], dpotential_curves[, subset], type = "l", lty = 1,
         main = "derivative of potential function", ylab = "", xlab = "population")
 lines(x[-1], diff(potential(x = x, a = a, r = r, H = H, Q = Q, K = K))/diff(x), lwd = 2)
 abline(h = 0, lwd = 2, lty = 3)
-## ----
-library(coda)
-effectiveSize(as.mcmc(t(potential_curves[seq(1, length(x), l = 1e2), ])))
 ## dev.off ----
 dev.off()
 ## device ----
