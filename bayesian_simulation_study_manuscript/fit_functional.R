@@ -29,27 +29,25 @@ cmodel <- compileNimble(model)
 ## specify samplers and monitors ----
 mcmcConf <- configureMCMC(cmodel)
 if(INCLUDE_ME) mcmcConf$addMonitors('x')
-# head(mcmcConf$getSamplers(), 10)
-# target <- c("r", "K", "a",
-#             "H", 
-#             "Q",
-#             "sigma")
-# if(INCLUDE_ME) target <- c(target, "sigma_me")
-# mcmcConf$removeSamplers(target)
-# # mcmcConf$addSampler(target = target, type = 'RW_block')
-# mcmcConf$addSampler(target = target, type = 'AF_slice')
-# tail(mcmcConf$getSamplers(), 10)
+head(mcmcConf$getSamplers(), 10)
+target <- c(paste0("beta[", 1:degree, "]"),
+            "sigma")
+if(INCLUDE_ME) target <- c(target, "sigma_me")
+mcmcConf$removeSamplers(target)
+# mcmcConf$addSampler(target = target, type = 'RW_block')
+mcmcConf$addSampler(target = target, type = 'AF_slice')
+tail(mcmcConf$getSamplers(), 10)
 ## compile and run MCMC ----
 system.time({
   mcmc <- buildMCMC(mcmcConf)
   Cmcmc <- compileNimble(mcmc, project = model, resetFunctions = T)
 })
-  n_iterations <- 1e1
-  system.time({
-    Cmcmc$run(n_iterations, nburnin = n_iterations / 2, 
-              thin = max(1, n_iterations / 2 / 5e3))
-  })
-  samples <- as.matrix(Cmcmc$mvSamples)
+n_iterations <- 1e4
+system.time({
+  Cmcmc$run(n_iterations, nburnin = n_iterations / 2, 
+            thin = max(1, n_iterations / 2 / 5e3))
+})
+samples <- as.matrix(Cmcmc$mvSamples)
 ## save samples ----
 save(samples, file = paste0("data/samples_functional_", N_trajectories, "_", seed, ".RData"))
 ## source plot.R ----

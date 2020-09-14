@@ -39,24 +39,12 @@ get_potential <- nimbleFunction(
 })
 ## define stochastic model in BUGS notation ----
 code <- nimble::nimbleCode({
-  # log(r) ~ dnorm(mu_r, sd_r)
-  # log(K) ~ dnorm(mu_K, sd_K)
-  # log(a) ~ dnorm(mu_a, sd_a)
-  # log(H) ~ dnorm(mu_H, sd_H)
-  # log(Q) ~ dnorm(mu_Q, sd_Q)
-  # log(sigma) ~ dnorm(mu_sigma, sd_sigma)
-  # log(sigma_me) ~ dnorm(mu_sigma_me, sd_sigma_me)
-  # r ~ dgamma(r_shape, r_rate)
-  # K ~ dgamma(K_shape, K_rate)
-  # a ~ dgamma(a_shape, a_rate)
-  # H ~ dgamma(H_shape, H_rate)
-  # Q ~ dgamma(Q_shape, Q_rate)
   beta[1:degree] ~ dmnorm(mean = beta_mean[1:degree], prec = beta_prec[1:degree, 1:degree])
   sigma ~ dgamma(sigma_shape, sigma_rate)
   for(i in 1:N_trajectories){
     x[1, i] <- x0
     for(t in 1:N_t){
-      mu[t, i] <- x[t, i] + t.step*(get_potential(x[t, i], beta[1:degree]))
+      mu[t, i] <- x[t, i] + t.step * (get_potential(x[t, i], beta[1:degree]))
       sd_x[t, i] <- sigma*mu[t, i]*sqrt(t.step)
       x[t + 1, i] ~ dspikenorm(mu[t, i], sd_x[t, i])    
     }

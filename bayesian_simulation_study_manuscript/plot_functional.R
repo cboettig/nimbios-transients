@@ -49,23 +49,22 @@ potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
   - cumsum(growth(x = x, r = r, K = K) - 
              consumption(x = x, a = a, H = H, Q = Q))
 }
-potential_curves <- apply(samples, 1, function(row){
-  potential(x = x, a = row['a'], r = row['r'], 
-            H = row['H'], Q = row['Q'], K = row['K'])
+dpotential_curves <- apply(samples[, 1:degree], 1, function(row){
+  sapply(x, get_potential, beta = row)
 })
-dpotential_curves <- apply(samples, 1, function(row){
-  p <- potential(x = x, a = row['a'], r = row['r'], 
-                 H = row['H'], Q = row['Q'], K = row['K'])
-  diff(p) / diff(x)
+potential_curves <- apply(samples[, 1:degree], 1, function(row){
+  -cumsum(sapply(x, get_potential, beta = row) * diff(x)) 
 })
 subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 layout(matrix(1:2, 1, 2))
 matplot(x, potential_curves[, subset], type = "l", lty = 1, 
-        col = scales::alpha("black", 1e-2), lwd = 2, ylim = c(-0.2, 0.2),
+        col = scales::alpha("black", 1e-2), lwd = 2, 
+        # ylim = c(-0.2, 0.2),
         main = "potential function", ylab = "", xlab = "population")
 lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 matplot(x[-1], dpotential_curves[, subset], type = "l", lty = 1,
-        col = scales::alpha("black", 1e-2), lwd = 2, ylim = c(-0.5, 1.3),
+        col = scales::alpha("black", 1e-2), lwd = 2, 
+        # ylim = c(-0.5, 1.3),
         main = "derivative of potential function", ylab = "", xlab = "population")
 lines(x[-1], diff(potential(x = x, a = a, r = r, H = H, Q = Q, K = K))/diff(x), lwd = 2)
 abline(h = 0, lwd = 2, lty = 3)
