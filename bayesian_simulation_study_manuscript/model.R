@@ -45,9 +45,9 @@ code <- nimble::nimbleCode({
   for(i in 1:N_trajectories){
     x[1, i] <- x0
     for(t in 1:N_t){
-      mu[t, i] <- x[t, i] + t.step*(x[t, i] * r * (1 - x[t, i] / K) - 
+      mu[t, i] <- x[t, i] + t.step * (x[t, i] * r * (1 - x[t, i] / K) - 
                                       a * x[t, i] ^ Q / (x[t, i] ^ Q + H ^ Q))
-      sd_x[t, i] <- sigma*mu[t, i]*sqrt(t.step)
+      sd_x[t, i] <- sigma * mu[t, i] * sqrt(t.step)
       x[t + 1, i] ~ dspikenorm(mu[t, i], sd_x[t, i])    
     }
   }

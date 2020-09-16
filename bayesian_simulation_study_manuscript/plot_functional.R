@@ -22,21 +22,31 @@ pdf(file = paste0("fig/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 # abline(h = sigma)
 # corrplot::corrplot(cor(samples[, c("log_r", "log_K", "log_a", "log_H", "log_Q", "log_sigma")]))
 ## trace plots ----
+layout(matrix(c(1:3, 3), 2, 2), widths = c(1, 2))
 variables <- c(paste0("beta[", 1:5, "]"), "sigma", "sigma_me")
-matplot(samples[, variables], type = "l")
+matplot(samples[, paste0("beta[", 1:5, "]")], type = "l")
+matplot(samples[, c("sigma", "sigma_me")], type = "l", lty = 1)
+legend("bottomright", col = 1:2, lty = 1, bty = "n", 
+       legend = c(expression(sigma), expression(sigma[me])))
 corrplot::corrplot(cor(samples[, variables]))
-# ## prior/post densities ----
-# layout(matrix(c(1:8), 4, 2))
-# par(mar = c(2, 2, 4, 2))
-# for(var in variables){
-#   plot(density(samples[, var], from = 0), main = var, 
-#        xlim = range(0, get(var), samples[, var]))
-#   xx <- seq(par()$usr[1], par()$usr[2], l = 2e2)
-#   lines(xx, dgamma(xx, as.numeric(constants[paste0(var, "_shape")]),
-#                    as.numeric(constants[paste0(var, "_rate")])), 
-#         col = "gray", lty = 2)
-#   points(get(var), par()$usr[3], xpd = T, pch = 8)
-# }
+## prior/post densities ----
+layout(matrix(c(1:8), 4, 2))
+par(mar = c(2, 2, 4, 2))
+for(var in variables[1:5]){
+  plot(density(samples[, var]), main = var,
+       xlim = range(0, samples[, var]))
+  xx <- seq(par()$usr[1], par()$usr[2], l = 2e2)
+  lines(xx, dnorm(xx, 0, 1), col = "gray", lty = 2)
+}
+for(var in variables[6:7]){
+  plot(density(samples[, var], from = 0), main = var,
+       xlim = range(0, get(var), samples[, var]))
+  xx <- seq(par()$usr[1], par()$usr[2], l = 2e2)
+  lines(xx, dgamma(xx, as.numeric(constants[paste0(var, "_shape")]),
+                   as.numeric(constants[paste0(var, "_rate")])),
+        col = "gray", lty = 2)
+  points(get(var), par()$usr[3], xpd = T, pch = 8)
+}
 ## dev.off ----
 dev.off()
 ## device ----
@@ -45,29 +55,32 @@ pdf(file = paste0("fig/posterior_potentials_", N_trajectories, "_", seed, ".pdf"
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
 x <- seq(0, 2, l=1e2)
+dpotential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
+  growth(x = x, r = r, K = K) - 
+    consumption(x = x, a = a, H = H, Q = Q)
+}
 potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
-  - cumsum(growth(x = x, r = r, K = K) - 
-             consumption(x = x, a = a, H = H, Q = Q))
+  cumsum(-dpotential(x = x, r = r, K = K, a = a, H = H, Q = Q)[-1] * diff(x))
 }
 dpotential_curves <- apply(samples[, 1:degree], 1, function(row){
-  sapply(x, get_potential, beta = row)
+  sapply(x, get_dV, beta = row)
 })
-potential_curves <- apply(samples[, 1:degree], 1, function(row){
-  -cumsum(sapply(x, get_potential, beta = row) * diff(x)) 
-})
+potential_curves <- apply(-dpotential_curves[-1, ] * diff(x), 2, cumsum)
 subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 layout(matrix(1:2, 1, 2))
-matplot(x, potential_curves[, subset], type = "l", lty = 1, 
+matplot(x[-1], potential_curves[, subset], type = "l", lty = 1, 
         col = scales::alpha("black", 1e-2), lwd = 2, 
-        # ylim = c(-0.2, 0.2),
+        ylim = c(-0.01, 0.01),
         main = "potential function", ylab = "", xlab = "population")
-lines(x, potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
-matplot(x[-1], dpotential_curves[, subset], type = "l", lty = 1,
+lines(x[-1], potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+rug(data$y)
+matplot(x, -dpotential_curves[, subset], type = "l", lty = 1,
         col = scales::alpha("black", 1e-2), lwd = 2, 
-        # ylim = c(-0.5, 1.3),
+        ylim = c(-0.05, 0.05),
         main = "derivative of potential function", ylab = "", xlab = "population")
-lines(x[-1], diff(potential(x = x, a = a, r = r, H = H, Q = Q, K = K))/diff(x), lwd = 2)
+lines(x, -dpotential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
 abline(h = 0, lwd = 2, lty = 3)
+rug(data$y)
 ## dev.off ----
 dev.off()
 ## device ----

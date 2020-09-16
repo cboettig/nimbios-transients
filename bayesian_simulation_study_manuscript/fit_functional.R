@@ -1,37 +1,35 @@
 ## source simulate.R ----
 source("simulate.R")
-## source model.R ----
+## source model_functional.R ----
 source("model_functional.R")
 ## source priors and initial values ----
 source("constants_inits_functional.R")
 ## initialize x and create model for fitting (choose INCLUDE_ME) ----
 INCLUDE_ME <- TRUE
 if(INCLUDE_ME){
-  inits <- list(
-    # r = r, K = K, a = a, H = H, Q = Q,
-    # sigma = sigma, sigma_me = sigma_me
-  )
-  data <- list(x = true_x)
-  model <- nimbleModel(code = code, constants = constants, inits = inits, data = data)
+inits_functional <- list(
+  x = obs_y + rnorm(length(obs_y), sd = diff(range(obs_y)) * 1e-2),
+  beta = rep(0, constants_functional$degree)
+  # sigma = sigma, sigma_me = sigma_me
+)
+data <- list(y = obs_y)
 } else {
-  inits <- list(
-    x = obs_y + rnorm(length(obs_y), sd = diff(range(obs_y)) * 1e-2),
-    # r = r, K = K, a = a, H = H, 
-    # Q = Q,
-    # sigma = sigma
-    # sigma_me = sigma_me
-  )
-  data <- list(y = obs_y)
-  model <- nimbleModel(code = code, constants = constants, inits = inits, data = data)
+inits_functional <- list(
+  beta = rep(0, constants_functional$degree)
+  # sigma = sigma, sigma_me = sigma_me
+)
+data <- list(x = true_x)
 }
+model_functional <- nimbleModel(code = code_functional, 
+                                constants = constants_functional, 
+                                inits = inits_functional, data = data)
 ## compile model ----
-cmodel <- compileNimble(model)
+cmodel_functional <- compileNimble(model_functional)
 ## specify samplers and monitors ----
-mcmcConf <- configureMCMC(cmodel)
+mcmcConf <- configureMCMC(cmodel_functional)
 if(INCLUDE_ME) mcmcConf$addMonitors('x')
 head(mcmcConf$getSamplers(), 10)
-target <- c(paste0("beta[", 1:degree, "]"),
-            "sigma")
+target <- c(paste0("beta[", 1:degree, "]"), "sigma")
 if(INCLUDE_ME) target <- c(target, "sigma_me")
 mcmcConf$removeSamplers(target)
 # mcmcConf$addSampler(target = target, type = 'RW_block')
@@ -39,8 +37,8 @@ mcmcConf$addSampler(target = target, type = 'AF_slice')
 tail(mcmcConf$getSamplers(), 10)
 ## compile and run MCMC ----
 system.time({
-  mcmc <- buildMCMC(mcmcConf)
-  Cmcmc <- compileNimble(mcmc, project = model, resetFunctions = T)
+mcmc <- buildMCMC(mcmcConf)
+Cmcmc <- compileNimble(mcmc, project = model, resetFunctions = T)
 })
 n_iterations <- 1e4
 system.time({
