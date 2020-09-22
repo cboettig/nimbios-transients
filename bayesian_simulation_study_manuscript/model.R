@@ -29,13 +29,6 @@ rspikenorm <- nimbleFunction(
   })
 ## define stochastic model in BUGS notation ----
 code <- nimble::nimbleCode({
-  # log(r) ~ dnorm(mu_r, sd_r)
-  # log(K) ~ dnorm(mu_K, sd_K)
-  # log(a) ~ dnorm(mu_a, sd_a)
-  # log(H) ~ dnorm(mu_H, sd_H)
-  # log(Q) ~ dnorm(mu_Q, sd_Q)
-  # log(sigma) ~ dnorm(mu_sigma, sd_sigma)
-  # log(sigma_me) ~ dnorm(mu_sigma_me, sd_sigma_me)
   r ~ dgamma(r_shape, r_rate)
   K ~ dgamma(K_shape, K_rate)
   a ~ dgamma(a_shape, a_rate)

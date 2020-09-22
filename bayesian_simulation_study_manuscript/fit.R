@@ -4,11 +4,8 @@ source("simulate.R")
 INCLUDE_ME <- TRUE
 if(INCLUDE_ME){
   inits <- list(
-    x = obs_y + rnorm(length(obs_y), sd = diff(range(obs_y)) * 1e-2),
-    # r = r, K = K, a = a, H = H, 
-    # Q = Q,
-    # sigma = sigma
-    # sigma_me = sigma_me
+    sigma_me = 1e-2,
+    x = obs_y + rnorm(length(obs_y), sd = diff(range(obs_y)) * 1e-2)
   )
   data <- list(y = obs_y)
   model <- nimbleModel(code = code, constants = constants, inits = inits, data = data)
@@ -43,7 +40,7 @@ system.time({
   mcmc <- buildMCMC(mcmcConf)
   Cmcmc <- compileNimble(mcmc, project = model, resetFunctions = T)
 })
-n_iterations <- 5e5
+n_iterations <- 1e5
 system.time({
   Cmcmc$run(n_iterations, nburnin = n_iterations / 2, 
             thin = max(1, n_iterations / 2 / 5e3))

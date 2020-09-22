@@ -1,7 +1,8 @@
-# ## load samples ----
-# source("code/scharf_nimble/model.R")
-# seed <- 270; N_trajectories <- 10
-# load(paste0("data/scharf_nimble/samples_", N_trajectories, "_", seed, ".RData"))
+## load samples ----
+source("code/scharf_nimble/model.R")
+seed <- 270; N_trajectories <- 10
+load(paste0("data/scharf_nimble/samples_functional_", N_trajectories, "_", seed, ".RData"))
+samples <- fit$samples
 ## device ----
 pdf(file = paste0("fig/trace_plots_", N_trajectories, "_", seed, ".pdf"))
 # ## trace plots (log) ----
@@ -54,7 +55,7 @@ pdf(file = paste0("fig/posterior_potentials_", N_trajectories, "_", seed, ".pdf"
 ## potential curves ----
 growth <- function(x, r, K){x * r * (1 - x / K)}
 consumption <- function(x, a, H, Q){a * x^Q / (x^Q + H^Q)}
-x <- seq(0, 2, l=1e2)
+x <- seq(0, 1.5, l=1e2)
 dpotential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
   growth(x = x, r = r, K = K) - 
     consumption(x = x, a = a, H = H, Q = Q)
@@ -65,22 +66,33 @@ potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
 dpotential_curves <- apply(samples[, 1:degree], 1, function(row){
   sapply(x, get_dV, beta = row)
 })
+dpotential_curves_quantiles <- apply(dpotential_curves, 1, quantile, probs = c(0.125, 0.5, 0.875))
 potential_curves <- apply(-dpotential_curves[-1, ] * diff(x), 2, cumsum)
+potential_curves_quantiles <- apply(potential_curves, 1, quantile, probs = c(0.125, 0.5, 0.875))
 subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 layout(matrix(1:2, 1, 2))
+transparency <- 2e-2
+matplot(x[-1], t(potential_curves_quantiles), type = "l", 
+        lty = c(2, 1, 2), lwd = c(1, 2, 1), 
+        ylim = c(-0.015, 0.01), main = "potential function", 
+        ylab = "", xlab = "population", col = "black")
 matplot(x[-1], potential_curves[, subset], type = "l", lty = 1, 
-        col = scales::alpha("black", 1e-2), lwd = 2, 
-        ylim = c(-0.01, 0.01),
-        main = "potential function", ylab = "", xlab = "population")
-lines(x[-1], potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+        col = scales::alpha("black", transparency), lwd = 2, add = T)
+lines(x[-1], potential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2, col = "darkred")
 rug(data$y)
-matplot(x, -dpotential_curves[, subset], type = "l", lty = 1,
-        col = scales::alpha("black", 1e-2), lwd = 2, 
+matplot(x, -t(dpotential_curves_quantiles), type = "l", 
+        lty = c(2, 1, 2), lwd = c(1, 2, 1), 
         ylim = c(-0.05, 0.05),
-        main = "derivative of potential function", ylab = "", xlab = "population")
-lines(x, -dpotential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2)
+        main = "derivative of potential function", 
+        ylab = "", xlab = "population", col = "black")
+matplot(x, -dpotential_curves[, subset], type = "l", lty = 1,
+        col = scales::alpha("black", transparency), lwd = 2, add = T)
+lines(x, -dpotential(x = x, a = a, r = r, H = H, Q = Q, K = K), lwd = 2, col = "darkred")
 abline(h = 0, lwd = 2, lty = 3)
 rug(data$y)
+## ESS ----
+library(coda)
+effectiveSize(as.mcmc(t(potential_curves[seq(1, nrow(potential_curves), l = 1e2), ])))
 ## dev.off ----
 dev.off()
 ## device ----
