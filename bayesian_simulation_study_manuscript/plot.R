@@ -55,15 +55,13 @@ potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
   - cumsum(growth(x = x, r = r, K = K) - 
              consumption(x = x, a = a, H = H, Q = Q))
 }
-potential_curves <- apply(samples, 1, function(row){
-  potential(x = x, a = row['a'], r = row['r'], 
-            H = row['H'], Q = row['Q'], K = row['K'])
-})
-dpotential_curves <- apply(samples, 1, function(row){
-  p <- potential(x = x, a = row['a'], r = row['r'], 
-                 H = row['H'], Q = row['Q'], K = row['K'])
-  diff(p) / diff(x)
-})
+dpotential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
+  growth(x = x, r = r, K = K) - 
+    consumption(x = x, a = a, H = H, Q = Q)
+}
+potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
+  cumsum(-dpotential(x = x, r = r, K = K, a = a, H = H, Q = Q)[-1] * diff(x))
+}
 subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 layout(matrix(1:2, 1, 2))
 matplot(x, potential_curves[, subset], type = "l", lty = 1, 

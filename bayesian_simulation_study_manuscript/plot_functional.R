@@ -66,8 +66,8 @@ potential <- function(x = seq(0, 2, l = 1e2), a, r, H, Q, K){
 dpotential_curves <- apply(samples[, 1:degree], 1, function(row){
   sapply(x, get_dV, beta = row)
 })
-dpotential_curves_quantiles <- apply(dpotential_curves, 1, quantile, probs = c(0.125, 0.5, 0.875))
 potential_curves <- apply(-dpotential_curves[-1, ] * diff(x), 2, cumsum)
+dpotential_curves_quantiles <- apply(dpotential_curves, 1, quantile, probs = c(0.125, 0.5, 0.875))
 potential_curves_quantiles <- apply(potential_curves, 1, quantile, probs = c(0.125, 0.5, 0.875))
 subset <- sample(1:nrow(samples), min(400, nrow(samples)))
 layout(matrix(1:2, 1, 2))

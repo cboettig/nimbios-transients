@@ -4,10 +4,12 @@
 #' @param inits list with initial values for nimbleModel()
 #' @param INCLUDE_ME logical, default \code{TRUE}; should error in population measurements be included
 #' @param seed 
+#' @importFrom nimble nimbleFunction
 #'
 #' @return list with population trajectory and observations with error if applicable; also constants and initial values used to simulate 
 #' @export
 simulate_model_nM <- function(constants = NULL, inits = NULL, INCLUDE_ME = T, seed = 270){
+  require(nimble)
   code <- make_model_code_nC()
   model <- nimbleModel(code = code, constants = constants, inits = inits)
   cmodel <- compileNimble(model)
