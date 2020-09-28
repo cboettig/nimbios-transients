@@ -6,7 +6,7 @@ N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 a <- 0.023; H <- 0.38; Q <- 5
 x0 <- 0.3
-sigma <- 0.02; sigma_me <- 0.01
+sigma <- 0.02; sigma_me <- 0.05
 ## constants (priors) ----
 constants_sim <- list(
   N = N, N_trajectories = N_trajectories_sim, 
@@ -19,8 +19,17 @@ inits_sim <- list(
 )
 ## simulate data ----
 sim <- simulate_model_nM(constants = constants_sim, inits = inits_sim)
-pdf("figs/")
+## device ----
+pdf("fig/data.pdf")
+## plot data ----
 plot_traj(sim$obs_y, sim$true_x)
+## dev.off ----
+dev.off()
+## compute stable points ----
+stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r, 
+                      H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
+ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r, 
+                      H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
 ## ----
 ## simulation parallel loop ----
 cl <- makeCluster(4)
@@ -68,36 +77,42 @@ out <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
                   seed = seed, n_iterations = n_iterations)
   fit$sample_time
   ISE <- get_ISE(samples = fit$samples, true = inits_sim, x = x_eval)
-  # plot_trace(fit$samples, true = inits_sim)
   ## fit functional ----
   fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional, 
                                         seed = seed, n_iterations = n_iterations_functional)
   fit_functional$sample_time
   ISE_functional <- get_ISE_functional(samples = fit_functional$samples, true = inits_sim, 
                                        x = x_eval)
-  # plot_trace_functional(fit_functional$samples)
-  ## compute stable points ----
-  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r, 
-                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
-  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r, 
-                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
-  # ## compare_potential curves ----
-  # plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
-  #                ylim_dpotential = 0.02 * c(-1, 1))
-  # points(c(stable_pop, ghost_pop), 
-  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r, 
+  ## device ----
+  pdf(paste0("fig/posterior_trace_", paste0(sort(y_subset), collapse = "_"), ".pdf"))
+  ## trace plots ----
+  plot_trace(fit$samples, true = inits_sim)
+  plot_trace_functional(fit_functional$samples)
+  ## dev.off ----
+  dev.off()
+  ## device ----
+  pdf(paste0("fig/posterior_potentials_", paste0(sort(y_subset), collapse = "_"), ".pdf"),
+      width = 10)
+  ## compare_potential curves ----
+  plot_potential(samples = fit$samples, true = inits_sim, x = x_eval,
+                 ylim_dpotential = 0.02 * c(-1, 1))
+  # points(c(stable_pop, ghost_pop),
+  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
   #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
   #        lwd = 2, col = "darkred", cex = 2)
-  # plot_potential_functional(fit_functional$samples, true = inits_sim, x = x_eval,
-  #                           ylim_dpotential = 0.02 * c(-1, 1))
-  # points(c(stable_pop, ghost_pop), 
-  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r, 
+  plot_potential_functional(fit_functional$samples, true = inits_sim, x = x_eval,
+                            ylim_dpotential = 0.02 * c(-1, 1))
+  # points(c(stable_pop, ghost_pop),
+  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
   #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
   #        lwd = 2, col = "darkred", cex = 2)
+  ## dev.off ----
+  dev.off()
   # ## compare ISE ----
   # plot(x_eval, ISE, type = "l", log = "")
   # lines(x_eval, ISE_functional, type = "l", col = 2)
   # rug(data$y)
+  ## ISE diff ----
   standardized_ISE_diff <- mean(ISE - ISE_functional) / sd(ISE - ISE_functional)
   ## compare ESS ----
   ESS <- c("fit" = get_ESS(fit$samples), 
