@@ -68,8 +68,8 @@ out <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   )
   ## seed, data, x_eval, n_iterations ----
   seed <- 1234
-  n_iterations <- 1e5
-  n_iterations_functional <- 1e4
+  n_iterations <- 1e1
+  n_iterations_functional <- 1e1
   data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
   x_eval <- seq(min(data$y), max(data$y), l = 2e2)
   ## fit parametric ----

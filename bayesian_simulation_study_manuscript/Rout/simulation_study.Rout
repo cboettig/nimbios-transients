@@ -157,3 +157,7 @@ Welcome at Sun Sep 27 23:28:22 2020
 +   ## return ----
 +   return(list("standardized_ISE_diff" = standardized_ISE_diff, "ESS" = ESS))
 + })
+Error in checkForRemoteErrors(val) : 
+  one node produced an error: missing values in object
+Calls: parLapplyLB ... clusterApplyLB -> dynamicClusterApply -> checkForRemoteErrors
+Execution halted
