@@ -8,6 +8,7 @@ plot_potential(
   samples,
   n_subset = 400,
   true = NULL,
+  obs_y = NULL,
   x = seq(0, 2, length.out = 100),
   probs = c(0.125, 0.5, 0.875),
   alpha = 0.02,
@@ -21,6 +22,8 @@ plot_potential(
 \item{n_subset}{}
 
 \item{true}{}
+
+\item{obs_y}{observations}
 
 \item{x}{}
 

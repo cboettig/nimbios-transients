@@ -1,24 +1,27 @@
 ## libraries ----
 library(longTransients)
 library(parallel)
+## set seed ----
+set.seed(2020)
 ## parameter values ----
 N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 a <- 0.023; H <- 0.38; Q <- 5
 x0 <- 0.3
-sigma <- 0.02; sigma_me <- 0.05
+sigma <- 0.02; sigma_me <- 0.01
 ## constants (priors) ----
 constants_sim <- list(
   N = N, N_trajectories = N_trajectories_sim, 
   x0 = x0, t.step = 1, N_t = N - 1
 )
-## inits ----
+## simulation parameters ----
 inits_sim <- list(
   r = r, K = K, a = a, H = H, Q = Q, 
   sigma = sigma, sigma_me = sigma_me
 )
 ## simulate data ----
 sim <- simulate_model_nM(constants = constants_sim, inits = inits_sim)
+x_eval <- seq(min(sim$obs_y), max(sim$obs_y), l = 2e2)
 ## device ----
 pdf("fig/data.pdf")
 ## plot data ----
@@ -32,13 +35,14 @@ ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = i
                       H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
 ## ----
 ## simulation parallel loop ----
-cl <- makeCluster(4)
-clusterExport(cl, varlist = c("inits_sim", "sim", "N", "N_trajectories_sim", "x0"))
-y_subsets <- c(lapply(1:N_trajectories_sim, function(x) x),
-               lapply(1:10, function(x) sample(1:N_trajectories_sim, 2)),
-               lapply(1:10, function(x) sample(1:N_trajectories_sim, 5)),
-               lapply(1, function(x) 1:N_trajectories_sim))
-out <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
+cl <- makeCluster(6)
+clusterExport(cl, varlist = c("inits_sim", "x_eval", "sim", "N", "N_trajectories_sim", "x0", 
+                              "dV"))
+y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
+               lapply(1:3, function(x) sample(1:N_trajectories_sim, 5)),
+               lapply(1:3, function(x) sample(1:N_trajectories_sim, 2)),
+               lapply(1:N_trajectories_sim, function(x) x))
+model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   ## libraries ----
   library(longTransients)
   ## constants (priors) ----
@@ -68,10 +72,9 @@ out <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   )
   ## seed, data, x_eval, n_iterations ----
   seed <- 1234
-  n_iterations <- 1e1
-  n_iterations_functional <- 1e1
+  n_iterations <- 1e5
+  n_iterations_functional <- 1e5
   data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
-  x_eval <- seq(min(data$y), max(data$y), l = 2e2)
   ## fit parametric ----
   fit <- fit_mcmc(data = data, constants = constants_fit, 
                   seed = seed, n_iterations = n_iterations)
@@ -100,8 +103,8 @@ out <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
   #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
   #        lwd = 2, col = "darkred", cex = 2)
-  plot_potential_functional(fit_functional$samples, true = inits_sim, x = x_eval,
-                            ylim_dpotential = 0.02 * c(-1, 1))
+  plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
+                            x = x_eval, ylim_dpotential = 0.02 * c(-1, 1))
   # points(c(stable_pop, ghost_pop),
   #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
   #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
@@ -138,8 +141,8 @@ ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
     l_i$standardized_ISE_diff)))
 })
 names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")
-save(ESS_by_N, ISE_by_N, file = "data/ESS_ISE.RData")
-## plot results ---- 
+save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_", substr(sigma_me, 3, 5), ".RData"))
+# # plot results ----
 # matplot(unique(y_subset_lengths), t(ESS_by_N), type = "b", pch = 1,
 #         xlab = "number of trajectories", ylab = "min(ESS)")
 # legend("bottomright", lty = 1:2, col = 1:2, legend = c("parametric", "non-parametric"), bty = "n")

@@ -66,6 +66,7 @@ plot_trace_functional <- function(samples){
 #' @param samples 
 #' @param n_subset 
 #' @param true 
+#' @param obs_y observations
 #' @param x 
 #' @param probs 
 #' @param alpha 
@@ -74,12 +75,12 @@ plot_trace_functional <- function(samples){
 #'
 #' @return
 #' @export
-plot_potential <- function(samples, n_subset = 400, true = NULL, 
+plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
                            x = seq(0, 2, length.out = 1e2),
                            probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
                            ylim_potential = NULL, ylim_dpotential = NULL){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
-  dpotential_curves <- apply(samples[subset, 1:degree], 1, function(row){
+  dpotential_curves <- apply(samples[subset, ], 1, function(row){
     sapply(x, dpotential, a = row['a'], r = row['r'], 
            H = row['H'], Q = row['Q'], K = row['K'])
   })
@@ -98,7 +99,7 @@ plot_potential <- function(samples, n_subset = 400, true = NULL,
   matplot(x[-1], potential_curves, type = "l", lty = 1, 
           col = scales::alpha("black", alpha), lwd = 2, add = T)
   lines(x[-1], true_potential, lwd = 2, col = "darkred")
-  rug(data$y)
+  rug(obs_y)
   matplot(x, -t(dpotential_curves_quantiles), type = "l", 
           lty = c(2, 1, 2), lwd = c(1, 2, 1), 
           ylim = ylim_dpotential,
@@ -108,7 +109,7 @@ plot_potential <- function(samples, n_subset = 400, true = NULL,
           col = scales::alpha("black", alpha), lwd = 2, add = T)
   lines(x, -true_dpotential, lwd = 2, col = "darkred")
   abline(h = 0, lwd = 2, lty = 3)
-  rug(data$y)
+  rug(obs_y)
 }
 
 #' Plot realizations of the potential function and its derivative for the parametric model
@@ -116,6 +117,7 @@ plot_potential <- function(samples, n_subset = 400, true = NULL,
 #' @param samples 
 #' @param n_subset 
 #' @param true 
+#' @param obs_y observations
 #' @param x 
 #' @param probs 
 #' @param alpha 
@@ -124,11 +126,12 @@ plot_potential <- function(samples, n_subset = 400, true = NULL,
 #'
 #' @return
 #' @export
-plot_potential_functional <- function(samples, n_subset = 400, true = NULL, 
+plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
                                       x = seq(0, 2, length.out = 1e2),
                                       probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
                                       ylim_potential = NULL, ylim_dpotential = NULL){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
+  degree <- length(grep("beta", colnames(samples)))
   dpotential_curves <- apply(samples[subset, 1:degree], 1, function(row){
     sapply(x, dV, beta = row)
   })
@@ -147,7 +150,7 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL,
   matplot(x[-1], potential_curves, type = "l", lty = 1, 
           col = scales::alpha("black", alpha), lwd = 2, add = T)
   lines(x[-1], true_potential, lwd = 2, col = "darkred")
-  rug(data$y)
+  rug(obs_y)
   matplot(x, -t(dpotential_curves_quantiles), type = "l", 
           lty = c(2, 1, 2), lwd = c(1, 2, 1), 
           ylim = ylim_dpotential,
@@ -157,5 +160,5 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL,
           col = scales::alpha("black", alpha), lwd = 2, add = T)
   lines(x, -true_dpotential, lwd = 2, col = "darkred")
   abline(h = 0, lwd = 2, lty = 3)
-  rug(data$y)
+  rug(obs_y)
 }
