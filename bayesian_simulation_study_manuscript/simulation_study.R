@@ -23,7 +23,7 @@ inits_sim <- list(
 sim <- simulate_model_nM(constants = constants_sim, inits = inits_sim)
 x_eval <- seq(min(sim$obs_y), max(sim$obs_y), l = 2e2)
 ## device ----
-pdf("fig/data.pdf")
+pdf(paste0("fig/data_me_", substr(sigma_me, 3, 5), ".pdf"))
 ## plot data ----
 plot_traj(sim$obs_y, sim$true_x)
 ## dev.off ----
@@ -87,14 +87,16 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   ISE_functional <- get_ISE_functional(samples = fit_functional$samples, true = inits_sim, 
                                        x = x_eval)
   ## device ----
-  pdf(paste0("fig/posterior_trace_", paste0(sort(y_subset), collapse = "_"), ".pdf"))
+  pdf(paste0("fig/posterior_trace_subset_", paste0(sort(y_subset), collapse = "_"), 
+             "_me_", substr(sigma_me, 3, 5), ".pdf"))
   ## trace plots ----
   plot_trace(fit$samples, true = inits_sim)
   plot_trace_functional(fit_functional$samples)
   ## dev.off ----
   dev.off()
   ## device ----
-  pdf(paste0("fig/posterior_potentials_", paste0(sort(y_subset), collapse = "_"), ".pdf"),
+  pdf(paste0("fig/posterior_potentials_subset_", paste0(sort(y_subset), collapse = "_"), 
+             "_me_", substr(sigma_me, 3, 5), ".pdf"),
       width = 10)
   ## compare_potential curves ----
   plot_potential(samples = fit$samples, true = inits_sim, x = x_eval,
@@ -141,7 +143,7 @@ ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
     l_i$standardized_ISE_diff)))
 })
 names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")
-save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_", substr(sigma_me, 3, 5), ".RData"))
+save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_me_", substr(sigma_me, 3, 5), ".RData"))
 # # plot results ----
 # matplot(unique(y_subset_lengths), t(ESS_by_N), type = "b", pch = 1,
 #         xlab = "number of trajectories", ylab = "min(ESS)")
