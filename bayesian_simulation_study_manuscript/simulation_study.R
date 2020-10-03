@@ -8,7 +8,7 @@ N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 a <- 0.023; H <- 0.38; Q <- 5
 x0 <- 0.3
-sigma <- 0.02; sigma_me <- 0.01
+sigma <- 0.02; sigma_me <- 0.05
 ## constants (priors) ----
 constants_sim <- list(
   N = N, N_trajectories = N_trajectories_sim, 
@@ -39,8 +39,8 @@ cl <- makeCluster(6)
 clusterExport(cl, varlist = c("inits_sim", "x_eval", "sim", "N", "N_trajectories_sim", "x0", 
                               "dV"))
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
-               lapply(1:3, function(x) sample(1:N_trajectories_sim, 5)),
-               lapply(1:3, function(x) sample(1:N_trajectories_sim, 2)),
+               lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
+               lapply(1:5, function(x) sample(1:N_trajectories_sim, 2)),
                lapply(1:N_trajectories_sim, function(x) x))
 model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   ## libraries ----
@@ -88,7 +88,7 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
                                        x = x_eval)
   ## device ----
   pdf(paste0("fig/posterior_trace_subset_", paste0(sort(y_subset), collapse = "_"), 
-             "_me_", substr(sigma_me, 3, 5), ".pdf"))
+             "_me_", substr(inits_sim$sigma_me, 3, 5), ".pdf"))
   ## trace plots ----
   plot_trace(fit$samples, true = inits_sim)
   plot_trace_functional(fit_functional$samples)
@@ -96,21 +96,13 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   dev.off()
   ## device ----
   pdf(paste0("fig/posterior_potentials_subset_", paste0(sort(y_subset), collapse = "_"), 
-             "_me_", substr(sigma_me, 3, 5), ".pdf"),
+             "_me_", substr(inits_sim$sigma_me, 3, 5), ".pdf"),
       width = 10)
   ## compare_potential curves ----
-  plot_potential(samples = fit$samples, true = inits_sim, x = x_eval,
-                 ylim_dpotential = 0.02 * c(-1, 1))
-  # points(c(stable_pop, ghost_pop),
-  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
-  #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
-  #        lwd = 2, col = "darkred", cex = 2)
+  plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
+                 obs_y = data$y, ylim_dpotential = 0.02 * c(-1, 1))
   plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
-                            x = x_eval, ylim_dpotential = 0.02 * c(-1, 1))
-  # points(c(stable_pop, ghost_pop),
-  #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
-  #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
-  #        lwd = 2, col = "darkred", cex = 2)
+                            obs_y = data$y, x = x_eval, ylim_dpotential = 0.02 * c(-1, 1))
   ## dev.off ----
   dev.off()
   # ## compare ISE ----
@@ -131,7 +123,7 @@ stopCluster(cl)
 y_subset_lengths <- unlist(lapply(y_subsets, length))
 ESS_by_N <- sapply(unique(y_subset_lengths), function(l){
   l_ind <- which(y_subset_lengths == l)
-  rowMeans(matrix(unlist(lapply(out[l_ind], function(l_i){
+  rowMeans(matrix(unlist(lapply(model_compare[l_ind], function(l_i){
     l_i$ESS[c('fit.min', 'fit_functional.min')]
   })), nrow = 2))
 })
@@ -139,7 +131,7 @@ colnames(ESS_by_N) <- paste(unique(y_subset_lengths), "traj")
 rownames(ESS_by_N) <- c("fit", "functional")
 ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
   l_ind <- which(y_subset_lengths == l)
-  mean(unlist(lapply(out[l_ind], function(l_i)
+  mean(unlist(lapply(model_compare[l_ind], function(l_i)
     l_i$standardized_ISE_diff)))
 })
 names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")

@@ -7,6 +7,6 @@ Author: Henry R. Scharf
 Maintainer: Henry R. Scharf <hscharf@sdsu.edu>
 Description: Functions to repeat the simulation study in the manuscript.
 License: MIT
-Depends: nimble, scales, coda
+Depends: nimble, scales, coda, corrplot
 Encoding: UTF-8
 RoxygenNote: 7.1.0
