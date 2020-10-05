@@ -3,11 +3,13 @@
 #' @param obs_y observed population with error
 #' @param true_x true population
 #' @param t.step time step
+#'
 #' @importFrom scales alpha
 #'
 #' @return NULL
 #' @export
 plot_traj <- function(obs_y = NULL, true_x = NULL, t.step = 1){
+  N <- nrow(true_x)
   if(is.null(obs_y)){
     matplot(seq(1, N, l = N / t.step), true_x,
             type = "l", ylab = "x", xlab = "time",

@@ -1,50 +1,43 @@
 ## libraries ----
-library(longTransients)
 library(parallel)
-## set seed ----
-set.seed(2020)
 ## parameter values ----
+n_iterations <- 1e4
 N <- 1e3; N_trajectories_sim <- 10
-r <- 0.05; K <- 2
-a <- 0.023; H <- 0.38; Q <- 5
-x0 <- 0.3
-sigma <- 0.02; sigma_me <- 0.05
-## constants (priors) ----
-constants_sim <- list(
-  N = N, N_trajectories = N_trajectories_sim, 
-  x0 = x0, t.step = 1, N_t = N - 1
-)
-## simulation parameters ----
-inits_sim <- list(
-  r = r, K = K, a = a, H = H, Q = Q, 
-  sigma = sigma, sigma_me = sigma_me
-)
-## simulate data ----
-sim <- simulate_model_nM(constants = constants_sim, inits = inits_sim)
-x_eval <- seq(min(sim$obs_y), max(sim$obs_y), l = 2e2)
-## device ----
-pdf(paste0("fig/data_me_", substr(sigma_me, 3, 5), ".pdf"))
-## plot data ----
-plot_traj(sim$obs_y, sim$true_x)
-## dev.off ----
-dev.off()
-## compute stable points ----
-stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r, 
-                      H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
-ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r, 
-                      H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
-## ----
-## simulation parallel loop ----
-cl <- makeCluster(6)
-clusterExport(cl, varlist = c("inits_sim", "x_eval", "sim", "N", "N_trajectories_sim", "x0", 
-                              "dV"))
+sigma_mes <- c(0.002, 0.01, 0.02, 0.04, 0.2)
+as <- c(0.023)
+## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
                lapply(1:5, function(x) sample(1:N_trajectories_sim, 2)),
                lapply(1:N_trajectories_sim, function(x) x))
-model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
+combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
+## simulation parallel loop ----
+cl <- makeCluster(6)
+clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
+model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
   ## libraries ----
   library(longTransients)
+  ## y_subset, sigma_me, a ----
+  y_subset <- combo$y_subset[[1]]
+  sigma_me <- combo$sigma_me
+  a <- combo$a
+  ## load data ----
+  y_subset_ind <- which(names(combo) == "y_subset")
+  nice_value_names <- sapply(combo, function(x) gsub(".", "_", x, fixed = T))
+  if(length(y_subset) > 1){
+    nice_value_names[y_subset_ind] <- gsub(", ", "_", nice_value_names[y_subset_ind], fixed = T)
+    nice_value_names[y_subset_ind] <- strsplit(nice_value_names[y_subset_ind], "c(", fixed = T)$y_subset[2]
+    nice_value_names[y_subset_ind] <- strsplit(nice_value_names[y_subset_ind], ")", fixed = T)$y_subset[1]
+  }
+  load(paste0("data/sim_", paste(names(combo)[-y_subset_ind], nice_value_names[-y_subset_ind], 
+                                 collapse = "_", sep = "_"), ".Rdata"))
+  x0 <- constants_sim$x0
+  ## x_eval + compute stable points ----
+  x_eval <- seq(0, 2, l = 2e2)
+  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r, 
+                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
+  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r, 
+                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
   ## constants (priors) ----
   N_trajectories_fit <- length(y_subset)
   constants_fit <- list(
@@ -72,8 +65,8 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   )
   ## seed, data, x_eval, n_iterations ----
   seed <- 1234
-  n_iterations <- 1e5
-  n_iterations_functional <- 1e5
+  n_iterations <- n_iterations
+  n_iterations_functional <- n_iterations
   data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
   ## fit parametric ----
   fit <- fit_mcmc(data = data, constants = constants_fit, 
@@ -87,16 +80,16 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
   ISE_functional <- get_ISE_functional(samples = fit_functional$samples, true = inits_sim, 
                                        x = x_eval)
   ## device ----
-  pdf(paste0("fig/posterior_trace_subset_", paste0(sort(y_subset), collapse = "_"), 
-             "_me_", substr(inits_sim$sigma_me, 3, 5), ".pdf"))
+  pdf(paste0("fig/posterior_trace_", paste(names(combo), nice_value_names, 
+                                                  collapse = "_", sep = "_"), ".pdf"))
   ## trace plots ----
   plot_trace(fit$samples, true = inits_sim)
   plot_trace_functional(fit_functional$samples)
   ## dev.off ----
   dev.off()
   ## device ----
-  pdf(paste0("fig/posterior_potentials_subset_", paste0(sort(y_subset), collapse = "_"), 
-             "_me_", substr(inits_sim$sigma_me, 3, 5), ".pdf"),
+  pdf(paste0("fig/posterior_potentials_", paste(names(combo), nice_value_names, 
+                                collapse = "_", sep = "_"), ".pdf"),
       width = 10)
   ## compare_potential curves ----
   plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
@@ -120,22 +113,23 @@ model_compare <- parLapplyLB(cl = cl, X = y_subsets, fun = function(y_subset){
 stopCluster(cl)
 ## ----
 ## save results ----
-y_subset_lengths <- unlist(lapply(y_subsets, length))
-ESS_by_N <- sapply(unique(y_subset_lengths), function(l){
-  l_ind <- which(y_subset_lengths == l)
-  rowMeans(matrix(unlist(lapply(model_compare[l_ind], function(l_i){
-    l_i$ESS[c('fit.min', 'fit_functional.min')]
-  })), nrow = 2))
-})
-colnames(ESS_by_N) <- paste(unique(y_subset_lengths), "traj")
-rownames(ESS_by_N) <- c("fit", "functional")
-ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
-  l_ind <- which(y_subset_lengths == l)
-  mean(unlist(lapply(model_compare[l_ind], function(l_i)
-    l_i$standardized_ISE_diff)))
-})
-names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")
-save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_me_", substr(sigma_me, 3, 5), ".RData"))
+save(model_compare, combos, file = paste0("data/ESS_ISE.RData"))
+# y_subset_lengths <- unlist(lapply(y_subsets, length))
+# ESS_by_N <- sapply(unique(y_subset_lengths), function(l){
+#   l_ind <- which(y_subset_lengths == l)
+#   rowMeans(matrix(unlist(lapply(model_compare[l_ind], function(l_i){
+#     l_i$ESS[c('fit.min', 'fit_functional.min')]
+#   })), nrow = 2))
+# })
+# colnames(ESS_by_N) <- paste(unique(y_subset_lengths), "traj")
+# rownames(ESS_by_N) <- c("fit", "functional")
+# ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
+#   l_ind <- which(y_subset_lengths == l)
+#   mean(unlist(lapply(model_compare[l_ind], function(l_i)
+#     l_i$standardized_ISE_diff)))
+# })
+# names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")
+# save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_me_", substr(sigma_me, 3, 5), ".RData"))
 # # plot results ----
 # matplot(unique(y_subset_lengths), t(ESS_by_N), type = "b", pch = 1,
 #         xlab = "number of trajectories", ylab = "min(ESS)")
