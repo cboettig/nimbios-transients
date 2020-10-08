@@ -1,9 +1,9 @@
 ## libraries ----
 library(parallel)
 ## parameter values ----
-n_iterations <- 1e4
+n_iterations <- 1e5
 N <- 1e3; N_trajectories_sim <- 10
-sigma_mes <- c(0.002, 0.01, 0.02, 0.04, 0.2)
+sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
 as <- c(0.023)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
@@ -15,6 +15,7 @@ combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
 cl <- makeCluster(6)
 clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
 model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
+# model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){
   ## libraries ----
   library(longTransients)
   ## y_subset, sigma_me, a ----
@@ -24,11 +25,8 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   ## load data ----
   y_subset_ind <- which(names(combo) == "y_subset")
   nice_value_names <- sapply(combo, function(x) gsub(".", "_", x, fixed = T))
-  if(length(y_subset) > 1){
-    nice_value_names[y_subset_ind] <- gsub(", ", "_", nice_value_names[y_subset_ind], fixed = T)
-    nice_value_names[y_subset_ind] <- strsplit(nice_value_names[y_subset_ind], "c(", fixed = T)$y_subset[2]
-    nice_value_names[y_subset_ind] <- strsplit(nice_value_names[y_subset_ind], ")", fixed = T)$y_subset[1]
-  }
+  nice_value_names[y_subset_ind] <- paste0(y_subset, collapse = "_")
+  file_suffix <- paste(names(combo), nice_value_names, collapse = "_", sep = "_")
   load(paste0("data/sim_", paste(names(combo)[-y_subset_ind], nice_value_names[-y_subset_ind], 
                                  collapse = "_", sep = "_"), ".Rdata"))
   x0 <- constants_sim$x0
@@ -72,43 +70,59 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   fit <- fit_mcmc(data = data, constants = constants_fit, 
                   seed = seed, n_iterations = n_iterations)
   fit$sample_time
-  ISE <- get_ISE(samples = fit$samples, true = inits_sim, x = x_eval)
   ## fit functional ----
   fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional, 
                                         seed = seed, n_iterations = n_iterations_functional)
   fit_functional$sample_time
-  ISE_functional <- get_ISE_functional(samples = fit_functional$samples, true = inits_sim, 
-                                       x = x_eval)
   ## device ----
-  pdf(paste0("fig/posterior_trace_", paste(names(combo), nice_value_names, 
-                                                  collapse = "_", sep = "_"), ".pdf"))
+  pdf(paste0("fig/posterior_trace_", file_suffix, ".pdf"))
   ## trace plots ----
   plot_trace(fit$samples, true = inits_sim)
   plot_trace_functional(fit_functional$samples)
   ## dev.off ----
   dev.off()
   ## device ----
-  pdf(paste0("fig/posterior_potentials_", paste(names(combo), nice_value_names, 
-                                collapse = "_", sep = "_"), ".pdf"),
+  pdf(paste0("fig/posterior_potentials_", file_suffix, ".pdf"),
       width = 10)
   ## compare_potential curves ----
-  plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
-                 obs_y = data$y, ylim_dpotential = 0.02 * c(-1, 1))
-  plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
-                            obs_y = data$y, x = x_eval, ylim_dpotential = 0.02 * c(-1, 1))
+  tryCatch(
+    expr = plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
+                          obs_y = data$y, ylim_dpotential = 0.02 * c(-1, 1)),
+    error = function(err){
+      message("error in plot_potential() for ", file_suffix) 
+      return(NULL)
+    })
+  tryCatch(
+    expr = plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
+                                     obs_y = data$y, x = x_eval, 
+                                     ylim_dpotential = 0.02 * c(-1, 1)),
+    error = function(err){
+      message("error in plot_potential_functional() for ", file_suffix) 
+      return(NULL)
+    })
   ## dev.off ----
   dev.off()
-  # ## compare ISE ----
-  # plot(x_eval, ISE, type = "l", log = "")
-  # lines(x_eval, ISE_functional, type = "l", col = 2)
-  # rug(data$y)
   ## ISE diff ----
-  standardized_ISE_diff <- mean(ISE - ISE_functional) / sd(ISE - ISE_functional)
-  ## compare ESS ----
-  ESS <- c("fit" = get_ESS(fit$samples), 
-           "fit_functional" = get_ESS_functional(fit_functional$samples))
+  tryCatch(expr = {
+    ISE <- c("fit" = get_ISE(samples = fit$samples, true = inits_sim, x = x_eval),
+             "fit_functional" = get_ISE_functional(samples = fit_functional$samples, 
+                                         true = inits_sim, x = x_eval))
+  },
+  error = function(err){
+    message("error in get_ISE() or get_ISE_functional() for ", file_suffix) 
+    return(NULL)
+  })
+  ## ESS ----
+  tryCatch(expr = {
+    ESS <- c("fit" = get_ESS(fit$samples, x = x_eval), 
+             "fit_functional" = get_ESS_functional(fit_functional$samples, x = x_eval))
+    },
+    error = function(err){
+      message("error in get_ESS() or get_ESS_functional() for ", file_suffix) 
+      return(NULL)
+    })
   ## return ----
-  return(list("standardized_ISE_diff" = standardized_ISE_diff, "ESS" = ESS))
+  return(list("ISE" = ISE, "ESS" = ESS))
 })
 stopCluster(cl)
 ## ----
