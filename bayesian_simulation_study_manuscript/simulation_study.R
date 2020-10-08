@@ -12,7 +12,7 @@ y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:N_trajectories_sim, function(x) x))
 combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
 ## simulation parallel loop ----
-cl <- makeCluster(6)
+cl <- makeCluster(5)
 clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
 model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
 # model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){
@@ -27,19 +27,19 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   nice_value_names <- sapply(combo, function(x) gsub(".", "_", x, fixed = T))
   nice_value_names[y_subset_ind] <- paste0(y_subset, collapse = "_")
   file_suffix <- paste(names(combo), nice_value_names, collapse = "_", sep = "_")
-  load(paste0("data/sim_", paste(names(combo)[-y_subset_ind], nice_value_names[-y_subset_ind], 
+  load(paste0("data/sim_", paste(names(combo)[-y_subset_ind], nice_value_names[-y_subset_ind],
                                  collapse = "_", sep = "_"), ".Rdata"))
   x0 <- constants_sim$x0
   ## x_eval + compute stable points ----
   x_eval <- seq(0, 2, l = 2e2)
-  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r, 
+  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r,
                         H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
-  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r, 
+  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r,
                         H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
   ## constants (priors) ----
   N_trajectories_fit <- length(y_subset)
   constants_fit <- list(
-    N = N, N_trajectories = N_trajectories_fit, 
+    N = N, N_trajectories = N_trajectories_fit,
     x0 = x0, t.step = 1, N_t = N - 1,
     ## prior hyperparameters
     r_shape = 2, r_rate = 10,
@@ -53,7 +53,7 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   ## constants for functional model (priors) ----
   degree <- 5
   constants_fit_functional <- list(
-    N = N, N_trajectories = N_trajectories_fit, 
+    N = N, N_trajectories = N_trajectories_fit,
     x0 = x0, t.step = 1, N_t = N - 1,
     degree = degree,
     beta_mean = rep(0, degree),
@@ -67,11 +67,11 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   n_iterations_functional <- n_iterations
   data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
   ## fit parametric ----
-  fit <- fit_mcmc(data = data, constants = constants_fit, 
+  fit <- fit_mcmc(data = data, constants = constants_fit,
                   seed = seed, n_iterations = n_iterations)
   fit$sample_time
   ## fit functional ----
-  fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional, 
+  fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional,
                                         seed = seed, n_iterations = n_iterations_functional)
   fit_functional$sample_time
   ## device ----
@@ -86,18 +86,18 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
       width = 10)
   ## compare_potential curves ----
   tryCatch(
-    expr = plot_potential(samples = fit$samples, true = inits_sim, x = x_eval, 
+    expr = plot_potential(samples = fit$samples, true = inits_sim, x = x_eval,
                           obs_y = data$y, ylim_dpotential = 0.02 * c(-1, 1)),
     error = function(err){
-      message("error in plot_potential() for ", file_suffix) 
+      message("error in plot_potential() for ", file_suffix)
       return(NULL)
     })
   tryCatch(
-    expr = plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
-                                     obs_y = data$y, x = x_eval, 
+    expr = plot_potential_functional(samples = fit_functional$samples, true = inits_sim,
+                                     obs_y = data$y, x = x_eval,
                                      ylim_dpotential = 0.02 * c(-1, 1)),
     error = function(err){
-      message("error in plot_potential_functional() for ", file_suffix) 
+      message("error in plot_potential_functional() for ", file_suffix)
       return(NULL)
     })
   ## dev.off ----
@@ -105,20 +105,20 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   ## ISE diff ----
   tryCatch(expr = {
     ISE <- c("fit" = get_ISE(samples = fit$samples, true = inits_sim, x = x_eval),
-             "fit_functional" = get_ISE_functional(samples = fit_functional$samples, 
+             "fit_functional" = get_ISE_functional(samples = fit_functional$samples,
                                          true = inits_sim, x = x_eval))
   },
   error = function(err){
-    message("error in get_ISE() or get_ISE_functional() for ", file_suffix) 
+    message("error in get_ISE() or get_ISE_functional() for ", file_suffix)
     return(NULL)
   })
   ## ESS ----
   tryCatch(expr = {
-    ESS <- c("fit" = get_ESS(fit$samples, x = x_eval), 
+    ESS <- c("fit" = get_ESS(fit$samples, x = x_eval),
              "fit_functional" = get_ESS_functional(fit_functional$samples, x = x_eval))
     },
     error = function(err){
-      message("error in get_ESS() or get_ESS_functional() for ", file_suffix) 
+      message("error in get_ESS() or get_ESS_functional() for ", file_suffix)
       return(NULL)
     })
   ## return ----
