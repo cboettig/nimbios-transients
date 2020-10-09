@@ -1,7 +1,7 @@
 ## libraries ----
 library(parallel)
 ## parameter values ----
-n_iterations <- 1e5
+n_iterations <- 1e3
 N <- 1e3; N_trajectories_sim <- 10
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
 as <- c(0.023)
@@ -12,7 +12,7 @@ y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:N_trajectories_sim, function(x) x))
 combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
 ## simulation parallel loop ----
-cl <- makeCluster(5)
+cl <- makeCluster(6)
 clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
 model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
 # model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){
@@ -31,7 +31,7 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
                                  collapse = "_", sep = "_"), ".Rdata"))
   x0 <- constants_sim$x0
   ## x_eval + compute stable points ----
-  x_eval <- seq(0, 2, l = 2e2)
+  x_eval <- seq(0.2, 1.8, l = 2e2)
   stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r,
                         H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
   ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r,
@@ -104,6 +104,7 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   dev.off()
   ## ISE diff ----
   tryCatch(expr = {
+    ISE <- NULL
     ISE <- c("fit" = get_ISE(samples = fit$samples, true = inits_sim, x = x_eval),
              "fit_functional" = get_ISE_functional(samples = fit_functional$samples,
                                          true = inits_sim, x = x_eval))
@@ -114,6 +115,7 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   })
   ## ESS ----
   tryCatch(expr = {
+    ESS <- NULL
     ESS <- c("fit" = get_ESS(fit$samples, x = x_eval),
              "fit_functional" = get_ESS_functional(fit_functional$samples, x = x_eval))
     },
@@ -128,23 +130,62 @@ stopCluster(cl)
 ## ----
 ## save results ----
 save(model_compare, combos, file = paste0("data/ESS_ISE.RData"))
-# y_subset_lengths <- unlist(lapply(y_subsets, length))
-# ESS_by_N <- sapply(unique(y_subset_lengths), function(l){
-#   l_ind <- which(y_subset_lengths == l)
-#   rowMeans(matrix(unlist(lapply(model_compare[l_ind], function(l_i){
-#     l_i$ESS[c('fit.min', 'fit_functional.min')]
-#   })), nrow = 2))
-# })
-# colnames(ESS_by_N) <- paste(unique(y_subset_lengths), "traj")
-# rownames(ESS_by_N) <- c("fit", "functional")
-# ISE_by_N <- sapply(unique(y_subset_lengths), function(l){
-#   l_ind <- which(y_subset_lengths == l)
-#   mean(unlist(lapply(model_compare[l_ind], function(l_i)
-#     l_i$standardized_ISE_diff)))
-# })
-# names(ISE_by_N) <- paste(unique(y_subset_lengths), "traj")
-# save(ESS_by_N, ISE_by_N, file = paste0("data/ESS_ISE_me_", substr(sigma_me, 3, 5), ".RData"))
-# # plot results ----
-# matplot(unique(y_subset_lengths), t(ESS_by_N), type = "b", pch = 1,
-#         xlab = "number of trajectories", ylab = "min(ESS)")
-# legend("bottomright", lty = 1:2, col = 1:2, legend = c("parametric", "non-parametric"), bty = "n")
+# ## load results ----
+# load("data/ESS_ISE.RData")
+## aggregate results ----
+problem_combos <- which(unlist(lapply(model_compare, function(m) sum(is.na(unlist(m))))) > 0)
+combos[problem_combos, ]
+model_compare[[problem_combos]]$ESS
+mean_ISE_ratio <- sapply(model_compare, function(model){
+  n <- length(model$ISE) / 2
+  mean(model$ISE[2:n + n] / model$ISE[2:n])
+})
+ESS_diff <- unlist(sapply(model_compare, function(model){
+  n <- length(model$ISE) / 2
+  out <- model$ESS['fit_functional.median'] - model$ESS['fit.median']
+  if(length(out) == 0) return(NA)
+  return(out)
+}))
+summary_df <- data.frame(n_traj = apply(combos, 1, function(x) length(x$y_subset)[[1]]),
+                         mean_ISE_ratio = mean_ISE_ratio,
+                         ESS_diff = ESS_diff,
+                         me = apply(combos, 1, function(x) x$sigma_me))
+agg_summary_df <- aggregate(summary_df[, 2:3], list(n_traj = summary_df$n_traj, 
+                                                    me = summary_df$me), mean, na.rm = T)
+## device ----
+pdf("fig/ESS_ISE_summary_plots.pdf")
+## plot ----
+layout(matrix(1:2, 1, 2))
+traj_colors <- viridisLite::magma(4, end = 0.9)
+matplot(unique(agg_summary_df$me), 
+        t(matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5)), type = "l",
+        ylim = c(0, max(agg_summary_df[, 'ESS_diff'])), col = traj_colors, lwd = 3,
+        ylab = "diff. in ESS (non-parametric - parametric)",
+        xlab = "measurement error variance", xaxt = "n", ylog = T)
+axis(1, unique(agg_summary_df$me))
+legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
+       legend = unique(agg_summary_df$n_traj))
+
+matplot(unique(agg_summary_df$me), 
+        t(matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5)), type = "l",
+        ylim = c(0, max(agg_summary_df[, 'mean_ISE_ratio'])), col = traj_colors, lwd = 3,
+        ylab = "ratio of MISE (non-parametric / parametric)",
+        xlab = "measurement error variance", xaxt = "n", ylog = T)
+axis(1, unique(agg_summary_df$me))
+legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
+       legend = unique(agg_summary_df$n_traj))
+
+image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
+      zlim = c(min(agg_summary_df[, 'ESS_diff']), 0),
+      matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5),
+      axes = F, xlab = "number of trajectories", ylab = "measurement error",
+      main = "difference in ESS", col = viridisLite::viridis(1e2, option = "A"))
+axis(1, unique(agg_summary_df$n_traj), lty = 0)
+axis(2, unique(agg_summary_df$me), lty = 0)
+image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
+      matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5),
+      axes = F, xlab = "number of trajectories", ylab = "", 
+      main = "ratio of MISE", col = viridisLite::viridis(1e2))
+axis(1, unique(agg_summary_df$n_traj), lty = 0)
+## dev.off ----
+dev.off()
