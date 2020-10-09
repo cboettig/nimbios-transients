@@ -155,3 +155,7 @@ Welcome at Thu Oct  8 14:31:12 2020
 +   ## return ----
 +   return(list("ISE" = ISE, "ESS" = ESS))
 + })
+Error in checkForRemoteErrors(val) : 
+  2 nodes produced errors; first error: object 'ESS' not found
+Calls: parApply ... clusterApply -> staticClusterApply -> checkForRemoteErrors
+Execution halted
