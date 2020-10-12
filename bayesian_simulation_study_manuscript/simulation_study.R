@@ -1,14 +1,14 @@
 ## libraries ----
 library(parallel)
 ## parameter values ----
-n_iterations <- 1e3
+n_iterations <- 1e5
 N <- 1e3; N_trajectories_sim <- 10
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
 as <- c(0.023)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
-               lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
-               lapply(1:5, function(x) sample(1:N_trajectories_sim, 2)),
+               lapply(1:10, function(x) sample(1:N_trajectories_sim, 5)),
+               lapply(1:10, function(x) sample(1:N_trajectories_sim, 2)),
                lapply(1:N_trajectories_sim, function(x) x))
 combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
 ## simulation parallel loop ----
@@ -102,7 +102,7 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
     })
   ## dev.off ----
   dev.off()
-  ## ISE diff ----
+  ## ISE ----
   tryCatch(expr = {
     ISE <- NULL
     ISE <- c("fit" = get_ISE(samples = fit$samples, true = inits_sim, x = x_eval),
@@ -138,7 +138,9 @@ combos[problem_combos, ]
 model_compare[[problem_combos]]$ESS
 mean_ISE_ratio <- sapply(model_compare, function(model){
   n <- length(model$ISE) / 2
-  mean(model$ISE[2:n + n] / model$ISE[2:n])
+  x_ind <- c(which.max(x_eval > ghost_pop),
+             which.max(x_eval > stable_pop))
+  mean(log(model$ISE[x_ind + n] / model$ISE[x_ind]))
 })
 ESS_diff <- unlist(sapply(model_compare, function(model){
   n <- length(model$ISE) / 2
@@ -150,42 +152,71 @@ summary_df <- data.frame(n_traj = apply(combos, 1, function(x) length(x$y_subset
                          mean_ISE_ratio = mean_ISE_ratio,
                          ESS_diff = ESS_diff,
                          me = apply(combos, 1, function(x) x$sigma_me))
-agg_summary_df <- aggregate(summary_df[, 2:3], list(n_traj = summary_df$n_traj, 
-                                                    me = summary_df$me), mean, na.rm = T)
+# agg_summary_df <- aggregate(summary_df[, 2:3], 
+#                             list(n_traj = summary_df$n_traj, 
+#                                  me = summary_df$me), median, na.rm = T)
+agg_summary_df <- aggregate(summary_df[, 2:3], 
+                            list(n_traj = summary_df$n_traj, 
+                                 me = summary_df$me), quantile, na.rm = T, 
+                            prob = c(0.25, 0.5, 0.75))
 ## device ----
 pdf("fig/ESS_ISE_summary_plots.pdf")
 ## plot ----
 layout(matrix(1:2, 1, 2))
 traj_colors <- viridisLite::magma(4, end = 0.9)
 matplot(unique(agg_summary_df$me), 
-        t(matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5)), type = "l",
+        t(matrix(agg_summary_df[, 'ESS_diff'][, 2], nrow = 4, ncol = 5)), type = "l",
         ylim = c(0, max(agg_summary_df[, 'ESS_diff'])), col = traj_colors, lwd = 3,
         ylab = "diff. in ESS (non-parametric - parametric)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
+for(n_traj in unique(agg_summary_df$n_traj)){
+  polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
+          c(agg_summary_df$ESS_diff[agg_summary_df$n_traj == n_traj, 1],
+            rev(agg_summary_df$ESS_diff[agg_summary_df$n_traj == n_traj, 3])),
+          col = scales::alpha(traj_colors[which(n_traj == unique(agg_summary_df$n_traj))], 0.3), 
+          border = NA)
+}
 axis(1, unique(agg_summary_df$me))
 legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
        legend = unique(agg_summary_df$n_traj))
 
 matplot(unique(agg_summary_df$me), 
-        t(matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5)), type = "l",
-        ylim = c(0, max(agg_summary_df[, 'mean_ISE_ratio'])), col = traj_colors, lwd = 3,
+        t(matrix(agg_summary_df[, 'mean_ISE_ratio'][, 2], nrow = 4, ncol = 5)), type = "l",
+        ylim = c(-2, 2),
+        col = traj_colors, lwd = 3,
         ylab = "ratio of MISE (non-parametric / parametric)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
+for(n_traj in unique(agg_summary_df$n_traj)){
+  polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
+          c(agg_summary_df$mean_ISE_ratio[agg_summary_df$n_traj == n_traj, 1],
+            rev(agg_summary_df$mean_ISE_ratio[agg_summary_df$n_traj == n_traj, 3])),
+          col = scales::alpha(traj_colors[which(n_traj == unique(agg_summary_df$n_traj))], 0.3), 
+          border = NA)
+}
 axis(1, unique(agg_summary_df$me))
+# for(n_traj in unique(agg_summary_df$n_traj)){
+#   mat <- t(matrix(summary_df[summary_df$n_traj == n_traj, 
+#                              'mean_ISE_ratio'], ncol = 5))
+#   matplot(unique(agg_summary_df$me), mat, 
+#           add = T, type = "l", lty = which(n_traj == unique(agg_summary_df$n_traj)),
+#           col = scales::alpha(traj_colors[which(n_traj == unique(agg_summary_df$n_traj))], 
+#                               alpha = 0.2))
+# }
+abline(h = 0)
 legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
        legend = unique(agg_summary_df$n_traj))
 
-image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
-      zlim = c(min(agg_summary_df[, 'ESS_diff']), 0),
-      matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5),
-      axes = F, xlab = "number of trajectories", ylab = "measurement error",
-      main = "difference in ESS", col = viridisLite::viridis(1e2, option = "A"))
-axis(1, unique(agg_summary_df$n_traj), lty = 0)
-axis(2, unique(agg_summary_df$me), lty = 0)
-image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
-      matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5),
-      axes = F, xlab = "number of trajectories", ylab = "", 
-      main = "ratio of MISE", col = viridisLite::viridis(1e2))
-axis(1, unique(agg_summary_df$n_traj), lty = 0)
+# image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
+#       zlim = c(min(agg_summary_df[, 'ESS_diff']), 0),
+#       matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5),
+#       axes = F, xlab = "number of trajectories", ylab = "measurement error",
+#       main = "difference in ESS", col = viridisLite::viridis(1e2, option = "A"))
+# axis(1, unique(agg_summary_df$n_traj), lty = 0)
+# axis(2, unique(agg_summary_df$me), lty = 0)
+# image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
+#       matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5),
+#       axes = F, xlab = "number of trajectories", ylab = "", 
+#       main = "ratio of MISE", col = viridisLite::viridis(1e2))
+# axis(1, unique(agg_summary_df$n_traj), lty = 0)
 ## dev.off ----
 dev.off()
