@@ -18,11 +18,11 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 > ## libraries ----
 > library(parallel)
 > ## parameter values ----
-> n_iterations <- 1e3
+> n_iterations <- 1e4
 > N <- 1e3; N_trajectories_sim <- 10
 > sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
 > as <- c(0.023)
@@ -35,17 +35,17 @@ Welcome at Fri Oct  9 20:51:03 2020
 > ## simulation parallel loop ----
 > cl <- makeCluster(6)
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 
-Welcome at Fri Oct  9 20:51:03 2020 
+Welcome at Sat Oct 10 03:41:07 2020 
 > clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
 > model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
 + # model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){
@@ -159,3 +159,64 @@ Welcome at Fri Oct  9 20:51:03 2020
 +   ## return ----
 +   return(list("ISE" = ISE, "ESS" = ESS))
 + })
+> stopCluster(cl)
+> ## ----
+> ## save results ----
+> save(model_compare, combos, file = paste0("data/ESS_ISE.RData"))
+> # ## load results ----
+> # load("data/ESS_ISE.RData")
+> ## aggregate results ----
+> problem_combos <- which(unlist(lapply(model_compare, function(m) sum(is.na(unlist(m))))) > 0)
+> combos[problem_combos, ]
+   y_subset sigma_me     a
+14        3    0.005 0.023
+> model_compare[[problem_combos]]$ESS
+NULL
+> mean_ISE_ratio <- sapply(model_compare, function(model){
++   n <- length(model$ISE) / 2
++   mean(model$ISE[2:n + n] / model$ISE[2:n])
++ })
+> ESS_diff <- unlist(sapply(model_compare, function(model){
++   n <- length(model$ISE) / 2
++   out <- model$ESS['fit_functional.median'] - model$ESS['fit.median']
++   if(length(out) == 0) return(NA)
++   return(out)
++ }))
+> summary_df <- data.frame(n_traj = apply(combos, 1, function(x) length(x$y_subset)[[1]]),
++                          mean_ISE_ratio = mean_ISE_ratio,
++                          ESS_diff = ESS_diff,
++                          me = apply(combos, 1, function(x) x$sigma_me))
+> agg_summary_df <- aggregate(summary_df[, 2:3], list(n_traj = summary_df$n_traj, 
++                                                     me = summary_df$me), mean, na.rm = T)
+> ## device ----
+> pdf("fig/ESS_ISE_summary_plots.pdf")
+> ## plot ----
+> layout(matrix(1:2, 1, 2))
+> traj_colors <- viridisLite::magma(4, end = 0.9)
+> matplot(unique(agg_summary_df$me), 
++         t(matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5)), type = "l",
++         ylim = c(0, max(agg_summary_df[, 'ESS_diff'])), col = traj_colors, lwd = 3,
++         ylab = "diff. in ESS (non-parametric - parametric)",
++         xlab = "measurement error variance", xaxt = "n", ylog = T)
+> axis(1, unique(agg_summary_df$me))
+> legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
++        legend = unique(agg_summary_df$n_traj))
+> 
+> matplot(unique(agg_summary_df$me), 
++         t(matrix(agg_summary_df[, 'mean_ISE_ratio'], nrow = 4, ncol = 5)), type = "l",
++         ylim = c(0, max(agg_summary_df[, 'mean_ISE_ratio'])), col = traj_colors, lwd = 3,
++         ylab = "ratio of MISE (non-parametric / parametric)",
++         xlab = "measurement error variance", xaxt = "n", ylog = T)
+> axis(1, unique(agg_summary_df$me))
+> legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
++        legend = unique(agg_summary_df$n_traj))
+> 
+> image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
++       zlim = c(min(agg_summary_df[, 'ESS_diff']), 0),
++       matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5),
++       axes = F, xlab = "number of trajectories", ylab = "measurement error",
++       main = "difference in ESS", col = viridisLite::viridis(1e2, option = "A"))
+Error in image.default(unique(agg_summary_df$n_traj), unique(agg_summary_df$me),  : 
+  invalid z limits
+Calls: image -> image.default
+Execution halted

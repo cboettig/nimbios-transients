@@ -1,25 +1,29 @@
 ## libraries ----
 library(parallel)
+library(longTransients)
 ## parameter values ----
-n_iterations <- 1e5
+n_iterations <- 1e4
 N <- 1e3; N_trajectories_sim <- 10
+r <- 0.05; K <- 2
+H <- 0.38; Q <- 5
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
-as <- c(0.023)
+as <- c(0.022, 0.023, 0.024)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
-               lapply(1:10, function(x) sample(1:N_trajectories_sim, 5)),
-               lapply(1:10, function(x) sample(1:N_trajectories_sim, 2)),
+               lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
+               lapply(1:5, function(x) sample(1:N_trajectories_sim, 2)),
                lapply(1:N_trajectories_sim, function(x) x))
 combos <- expand.grid("y_subset" = y_subsets, "sigma_me" = sigma_mes, "a" = as)
+x_eval <- seq(0.2, 1.8, l = 2e2)
 ## simulation parallel loop ----
 cl <- makeCluster(6)
-clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations"))
+clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations", "x_eval"))
 model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
 # model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){
   ## libraries ----
   library(longTransients)
   ## y_subset, sigma_me, a ----
-  y_subset <- combo$y_subset[[1]]
+  y_subset <- combo$y_subset
   sigma_me <- combo$sigma_me
   a <- combo$a
   ## load data ----
@@ -27,15 +31,10 @@ model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo)
   nice_value_names <- sapply(combo, function(x) gsub(".", "_", x, fixed = T))
   nice_value_names[y_subset_ind] <- paste0(y_subset, collapse = "_")
   file_suffix <- paste(names(combo), nice_value_names, collapse = "_", sep = "_")
+  message("file_suffix:", file_suffix)
   load(paste0("data/sim_", paste(names(combo)[-y_subset_ind], nice_value_names[-y_subset_ind],
                                  collapse = "_", sep = "_"), ".Rdata"))
   x0 <- constants_sim$x0
-  ## x_eval + compute stable points ----
-  x_eval <- seq(0.2, 1.8, l = 2e2)
-  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = inits_sim$a, r = inits_sim$r,
-                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$root
-  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = inits_sim$a, r = inits_sim$r,
-                        H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K)$minimum
   ## constants (priors) ----
   N_trajectories_fit <- length(y_subset)
   constants_fit <- list(
@@ -134,10 +133,16 @@ save(model_compare, combos, file = paste0("data/ESS_ISE.RData"))
 # load("data/ESS_ISE.RData")
 ## aggregate results ----
 problem_combos <- which(unlist(lapply(model_compare, function(m) sum(is.na(unlist(m))))) > 0)
-combos[problem_combos, ]
-model_compare[[problem_combos]]$ESS
-mean_ISE_ratio <- sapply(model_compare, function(model){
+# combos[problem_combos, ]
+# model_compare[[problem_combos]]$ESS
+mean_ISE_ratio <- sapply(1:length(model_compare), function(i){
+  model <- model_compare[[i]]
   n <- length(model$ISE) / 2
+  ## need to sort out a for general combinations [20201012HRS]
+  stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = combos[i, 'a'], r = r,
+                        H = H, Q = Q, K = K)$root
+  ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = combos[i, 'a'], r = r,
+                        H = H, Q = Q, K = K)$minimum
   x_ind <- c(which.max(x_eval > ghost_pop),
              which.max(x_eval > stable_pop))
   mean(log(model$ISE[x_ind + n] / model$ISE[x_ind]))

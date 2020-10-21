@@ -189,13 +189,15 @@ get_ISE_functional <- function(samples, true, x = seq(0, 2, length.out = 1e2)){
 #'
 #' @return vector of min, mean, and median ESS across derivative of potential
 #' @export
-get_ESS <- function(samples, x = seq(0.1, 1.9, length.out = 1e2)){
+get_ESS <- function(samples, x = seq(0.1, 1.9, length.out = 1e2, na.rm = T)){
   dpotential_curves <- apply(samples, 1, function(row){
     sapply(x, dpotential, a = row['a'], r = row['r'], 
            H = row['H'], Q = row['Q'], K = row['K'])
   })
   ESS <- effectiveSize(t(dpotential_curves))
-  return(c(min = min(ESS), mean = mean(ESS), median = median(ESS)))
+  return(c(min = min(ESS, na.rm = na.rm), 
+           mean = mean(ESS, na.rm = na.rm), 
+           median = median(ESS, na.rm = na.rm)))
 }
 
 #' Compute summaries of effective sample size for derivative of potential
