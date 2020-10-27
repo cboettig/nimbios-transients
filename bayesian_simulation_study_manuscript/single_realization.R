@@ -64,8 +64,8 @@ constants_fit_functional <- list(
 )
 ## seed, data, x_eval, n_iterations ----
 seed <- 1234
-n_iterations <- 1e5
-n_iterations_functional <- 1e5
+n_iterations <- 1e2
+n_iterations_functional <- 1e2
 data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
 ## fit parametric ----
 fit <- fit_mcmc(data = data, constants = constants_fit, 
@@ -154,7 +154,7 @@ get_par <- function(beta, x_eval, loss = function(f, g) sum((f - g)^2),
 }
 get_par(beta = beta_samples[1, ], x_eval = x_eval, method = "L-BFGS-B", 
         n_reps = 10, lower = rep(1e-8, 5), upper = c(1, 1, 10, 20, 20),
-        control = list(parscale = c(1e1, 1e1, 1, 1, 1)), ncores = 6)
+        control = list(parscale = c(1e1, 1e1, 1, 1, 1)), ncores = 1)
 unlist(inits_sim[c('a', 'r', 'H', 'Q', 'K')])
 beta_samples <- fit_functional$samples[, grep("beta", colnames(fit_functional$samples))]
 system.time({

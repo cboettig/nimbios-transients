@@ -4,7 +4,7 @@
 \alias{get_ESS}
 \title{Compute summaries of effective sample size for derivative of potential for parametric model}
 \usage{
-get_ESS(samples, x = seq(0.1, 1.9, length.out = 100, na.rm = T))
+get_ESS(samples, x = seq(0.1, 1.9, length.out = 100))
 }
 \arguments{
 \item{samples}{}
