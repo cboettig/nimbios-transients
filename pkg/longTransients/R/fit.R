@@ -186,10 +186,11 @@ get_ISE_functional <- function(samples, true, x = seq(0, 2, length.out = 1e2)){
 #'
 #' @param samples 
 #' @param x 
+#' @param na.rm default `TRUE`
 #'
 #' @return vector of min, mean, and median ESS across derivative of potential
 #' @export
-get_ESS <- function(samples, x = seq(0.1, 1.9, length.out = 1e2)){
+get_ESS <- function(samples, x = seq(0.1, 1.9, length.out = 1e2), na.rm = TRUE){
   dpotential_curves <- apply(samples, 1, function(row){
     sapply(x, dpotential, a = row['a'], r = row['r'], 
            H = row['H'], Q = row['Q'], K = row['K'])

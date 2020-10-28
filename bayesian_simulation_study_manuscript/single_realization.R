@@ -64,8 +64,8 @@ constants_fit_functional <- list(
 )
 ## seed, data, x_eval, n_iterations ----
 seed <- 1234
-n_iterations <- 1e2
-n_iterations_functional <- 1e2
+n_iterations <- 5e3
+n_iterations_functional <- 5e3
 data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
 ## fit parametric ----
 fit <- fit_mcmc(data = data, constants = constants_fit, 

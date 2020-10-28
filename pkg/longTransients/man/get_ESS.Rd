@@ -4,12 +4,14 @@
 \alias{get_ESS}
 \title{Compute summaries of effective sample size for derivative of potential for parametric model}
 \usage{
-get_ESS(samples, x = seq(0.1, 1.9, length.out = 100))
+get_ESS(samples, x = seq(0.1, 1.9, length.out = 100), na.rm = TRUE)
 }
 \arguments{
 \item{samples}{}
 
 \item{x}{}
+
+\item{na.rm}{default `TRUE`}
 }
 \value{
 vector of min, mean, and median ESS across derivative of potential
