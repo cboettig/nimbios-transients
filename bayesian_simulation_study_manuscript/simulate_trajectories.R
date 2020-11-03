@@ -7,7 +7,7 @@ H <- 0.38; Q <- 5
 x0 <- 0.3
 sigma <- 0.02
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
-as <- c(0.022, 0.023, 0.024)
+as <- c(0.022, 0.0225, 0.023, 0.0235, 0.024)
 parameter_combos <- expand.grid("sigma_me" = sigma_mes, "a" = as)
 ## simulate data loop ----
 for(i in 1:nrow(parameter_combos)){
