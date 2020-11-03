@@ -64,8 +64,8 @@ constants_fit_functional <- list(
 )
 ## seed, data, x_eval, n_iterations ----
 seed <- 1234
-n_iterations <- 1e5
-n_iterations_functional <- 1e5
+n_iterations <- 5e3
+n_iterations_functional <- 5e3
 data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
 ## fit parametric ----
 fit <- fit_mcmc(data = data, constants = constants_fit, 
@@ -117,67 +117,64 @@ ESS <- c("fit" = get_ESS(fit$samples),
          "fit_functional" = get_ESS_functional(fit_functional$samples))
 ESS
 ## ----
-## can we recover parameters from non-parametric model? short answer: no ----
-get_par <- function(beta, x_eval, loss = function(f, g) sum((f - g)^2), 
-                    init = NULL, init_sd = NULL, n_reps = 1, verbose = F, 
-                    ncores = 1, ...){
-  args <- list(...)
-  if(is.null(init) & !is.null(args$lower) & !is.null(args$upper)){
-    init <- sapply(1:length(args$lower), function(i){
-      runif(1, args$lower[i], args$upper[i])
-    })
-  }
-  if(is.null(init_sd)){
-    init_sd <- rep(0, length(init))
-  }
-  if(ncores > 1){
-    require(parallel)
-    cl <- makeForkCluster(ncores)
-    optima <- parSapply(cl, 1:n_reps, function(i){
-      optim(par = init + rnorm(length(init), sd = init_sd), fn = function(par){
-        loss(dpotential(x = x_eval, a = par[1], r = par[2], H = par[3], Q = par[4], K = par[5]),
-             sapply(x_eval, dV, beta = beta))
-      }, ...)
-    }, simplify = F)
-    stopCluster(cl)
-  } else {
-    optima <- sapply(1:n_reps, function(i){
-      optim(par = init + rnorm(length(init), sd = init_sd), fn = function(par){
-        loss(dpotential(x = x_eval, a = par[1], r = par[2], H = par[3], Q = par[4], K = par[5]),
-             sapply(x_eval, dV, beta = beta))
-      }, ...)
-    }, simplify = F)
-  }
-  best <- which.min(sapply(optima, function(opt) opt$value))
-  if(verbose) return(optima)
-  return(optima[[best]]$par)
-}
-get_par(beta = beta_samples[1, ], x_eval = x_eval, method = "L-BFGS-B", 
-        n_reps = 10, lower = rep(1e-8, 5), upper = c(1, 1, 10, 20, 20),
-        control = list(parscale = c(1e1, 1e1, 1, 1, 1)), ncores = 6)
-unlist(inits_sim[c('a', 'r', 'H', 'Q', 'K')])
-beta_samples <- fit_functional$samples[, grep("beta", colnames(fit_functional$samples))]
-system.time({
-  par_hat <- t(matrix(unlist(apply(beta_samples, 1, get_par, 
-                                   x_eval = x_eval, n_reps = 30, ncores = 6,
-                                   lower = rep(1e-8, 5), upper = c(1, 1, 10, 20, 20),
-                                   control = list(parscale = c(1e1, 1e1, 1, 1, 1)))), nrow = 5))
-})
-colnames(par_hat) <- c('a', 'r', 'H', 'Q', 'K')
-matplot(par_hat, type = "l", log = "y")
-plot(par_hat[, 'r'], type = "l", log = "y")
-matdensity <- function(mat){
-  d <- apply(as.matrix(mat), 2, density)
-  plot(range(sapply(1:length(d), function(i) range(d[[i]]$x))),
-       range(sapply(1:length(d), function(i) range(d[[i]]$y))), 
-       type = "n", xlab = "", ylab = "")
-  for(i in 1:length(d)){
-    lines(d[[i]], col = i)
-  }
-}
-coda::effectiveSize(par_hat)
-get_ESS(samples = par_hat, x = c(ghost_pop, stable_pop))
-get_ESS(samples = par_hat, x = x_eval)
-matdensity(par_hat[, c('r', 'a')])
-matdensity(par_hat[, c('H')])
-matdensity(par_hat[, c('K', 'Q')])
+# ## can we recover parameters from non-parametric model? short answer: no ----
+# get_par <- function(beta, x_eval, loss = function(f, g) sum((f - g)^2), 
+#                     init = NULL, init_sd = NULL, n_reps = 1, verbose = F, 
+#                     ncores = 1, ...){
+#   args <- list(...)
+#   if(is.null(init) & !is.null(args$lower) & !is.null(args$upper)){
+#     init <- sapply(1:length(args$lower), function(i){
+#       runif(1, args$lower[i], args$upper[i])
+#     })
+#   }
+#   if(is.null(init_sd)){
+#     init_sd <- rep(0, length(init))
+#   }
+#   if(ncores > 1){
+#     require(parallel)
+#     cl <- makeForkCluster(ncores)
+#     optima <- parSapply(cl, 1:n_reps, function(i){
+#       optim(par = init + rnorm(length(init), sd = init_sd), fn = function(par){
+#         loss(dpotential(x = x_eval, a = par[1], r = par[2], H = par[3], Q = par[4], K = par[5]),
+#              sapply(x_eval, dV, beta = beta))
+#       }, ...)
+#     }, simplify = F)
+#     stopCluster(cl)
+#   } else {
+#     optima <- sapply(1:n_reps, function(i){
+#       optim(par = init + rnorm(length(init), sd = init_sd), fn = function(par){
+#         loss(dpotential(x = x_eval, a = par[1], r = par[2], H = par[3], Q = par[4], K = par[5]),
+#              sapply(x_eval, dV, beta = beta))
+#       }, ...)
+#     }, simplify = F)
+#   }
+#   best <- which.min(sapply(optima, function(opt) opt$value))
+#   if(verbose) return(optima)
+#   return(optima[[best]]$par)
+# }
+# unlist(inits_sim[c('a', 'r', 'H', 'Q', 'K')])
+# beta_samples <- fit_functional$samples[, grep("beta", colnames(fit_functional$samples))]
+# system.time({
+#   par_hat <- t(matrix(unlist(apply(beta_samples, 1, get_par, 
+#                                    x_eval = x_eval, n_reps = 30, ncores = 6,
+#                                    lower = rep(1e-8, 5), upper = c(1, 1, 10, 20, 20),
+#                                    control = list(parscale = c(1e1, 1e1, 1, 1, 1)))), nrow = 5))
+# })
+# colnames(par_hat) <- c('a', 'r', 'H', 'Q', 'K')
+# matplot(par_hat, type = "l", log = "y")
+# plot(par_hat[, 'r'], type = "l", log = "y")
+# matdensity <- function(mat){
+#   d <- apply(as.matrix(mat), 2, density)
+#   plot(range(sapply(1:length(d), function(i) range(d[[i]]$x))),
+#        range(sapply(1:length(d), function(i) range(d[[i]]$y))), 
+#        type = "n", xlab = "", ylab = "")
+#   for(i in 1:length(d)){
+#     lines(d[[i]], col = i)
+#   }
+# }
+# coda::effectiveSize(par_hat)
+# get_ESS(samples = par_hat, x = c(ghost_pop, stable_pop))
+# get_ESS(samples = par_hat, x = x_eval)
+# matdensity(par_hat[, c('r', 'a')])
+# matdensity(par_hat[, c('H')])
+# matdensity(par_hat[, c('K', 'Q')])

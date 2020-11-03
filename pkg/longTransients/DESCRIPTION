@@ -9,4 +9,4 @@ Description: Functions to repeat the simulation study in the manuscript.
 License: MIT
 Depends: nimble, scales, coda, corrplot
 Encoding: UTF-8
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
