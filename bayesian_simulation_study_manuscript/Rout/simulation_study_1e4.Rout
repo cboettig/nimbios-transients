@@ -18,7 +18,7 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 
-Welcome at Wed Oct 21 04:37:31 2020 
+Welcome at Wed Oct 21 15:01:57 2020 
 > ## libraries ----
 > library(parallel)
 > library(longTransients)
@@ -54,17 +54,17 @@ corrplot 0.84 loaded
 > ## simulation parallel loop ----
 > cl <- makeCluster(6)
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 
-Welcome at Wed Oct 21 04:37:33 2020 
+Welcome at Wed Oct 21 15:01:59 2020 
 > clusterExport(cl, varlist = c("N", "N_trajectories_sim", "n_iterations", "x_eval"))
 > model_compare <- parApply(cl = cl, X = combos, MARGIN = 1, FUN = function(combo){
 + # model_compare <- apply(X = combos, MARGIN = 1, FUN = function(combo){

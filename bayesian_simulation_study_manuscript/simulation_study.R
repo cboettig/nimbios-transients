@@ -7,7 +7,7 @@ N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 H <- 0.38; Q <- 5
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
-as <- c(0.0235)
+as <- c(0.023)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
@@ -130,8 +130,8 @@ stopCluster(cl)
 ## save results ----
 save(model_compare, combos, file = paste0("data/ESS_ISE_a_", 
                                           gsub(".", "_", as, fixed = T), ".RData"))
-# ## load results ----
-# load("data/ESS_ISE_20201014.RData")
+## load results ----
+load(paste0("data/ESS_ISE_a_", gsub(".", "_", as, fixed = T), ".RData"))
 ## aggregate results ----
 problem_combos <- which(unlist(lapply(model_compare, function(m) sum(is.na(unlist(m))))) > 0)
 # combos[problem_combos, ]
@@ -188,7 +188,7 @@ legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
 
 matplot(unique(agg_summary_df$me), 
         t(matrix(agg_summary_df[, 'mean_ISE_ratio'][, 2], nrow = 4, ncol = 5)), type = "l",
-        ylim = 0.75 * c(-1, 1),
+        ylim = 1.55 * c(-1, 1),
         col = traj_colors, lwd = 3,
         ylab = "ratio of MISE (non-parametric / parametric)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
