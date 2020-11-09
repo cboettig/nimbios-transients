@@ -40,5 +40,9 @@ rsconnect/
 # scharf misc
 *.DS_Store
 diary_scharf/
+bayesian_simulation_study_manuscript/data/*.Rdata
+bayesian_simulation_study_manuscript/fig/posterior_potentials*.pdf
+bayesian_simulation_study_manuscript/fig/posterior_trace*.pdf
+bayesian_simulation_study_manuscript/fig/*.zip
 nimbios-transients.Rproj
 *Rout/

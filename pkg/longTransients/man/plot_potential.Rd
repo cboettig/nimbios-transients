@@ -8,12 +8,14 @@ plot_potential(
   samples,
   n_subset = 400,
   true = NULL,
-  obs_y = NULL,
+  obs_y = NA,
   x = seq(0, 2, length.out = 100),
   probs = c(0.125, 0.5, 0.875),
   alpha = 0.02,
   ylim_potential = NULL,
-  ylim_dpotential = NULL
+  ylim_grad = NULL,
+  which_plot = "both",
+  main = NULL
 )
 }
 \arguments{
@@ -33,7 +35,11 @@ plot_potential(
 
 \item{ylim_potential}{}
 
-\item{ylim_dpotential}{}
+\item{ylim_grad}{}
+
+\item{which_plot}{\code{"potential"} for potential function, "grad" for negative gradient of potential function, or \code{"both"} for both}
+
+\item{main}{}
 }
 \value{
 

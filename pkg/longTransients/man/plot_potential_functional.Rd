@@ -13,7 +13,9 @@ plot_potential_functional(
   probs = c(0.125, 0.5, 0.875),
   alpha = 0.02,
   ylim_potential = NULL,
-  ylim_dpotential = NULL
+  ylim_grad = NULL,
+  which_plot = "both",
+  main = NULL
 )
 }
 \arguments{
@@ -33,7 +35,11 @@ plot_potential_functional(
 
 \item{ylim_potential}{}
 
-\item{ylim_dpotential}{}
+\item{ylim_grad}{}
+
+\item{which_plot}{\code{"potential"} for potential function, "grad" for negative gradient of potential function, or \code{"both"} for both}
+
+\item{main}{}
 }
 \value{
 

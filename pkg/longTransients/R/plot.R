@@ -73,14 +73,17 @@ plot_trace_functional <- function(samples){
 #' @param probs 
 #' @param alpha 
 #' @param ylim_potential 
-#' @param ylim_dpotential 
+#' @param ylim_grad 
+#' @param which_plot \code{"potential"} for potential function, "grad" for negative gradient of potential function, or \code{"both"} for both
+#' @param main 
 #'
 #' @return
 #' @export
-plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
+plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NA,
                            x = seq(0, 2, length.out = 1e2),
                            probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
-                           ylim_potential = NULL, ylim_dpotential = NULL){
+                           ylim_potential = NULL, ylim_grad = NULL,
+                           which_plot = "both", main = NULL){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
   dpotential_curves <- apply(samples[subset, ], 1, function(row){
     sapply(x, dpotential, a = row['a'], r = row['r'], 
@@ -93,25 +96,30 @@ plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
                                 H = true$H, Q = true$Q, K = true$K)
   true_potential <- potential(x = x, a = true$a, r = true$r, 
                               H = true$H, Q = true$Q, K = true$K)
-  layout(matrix(1:2, 1, 2))
-  matplot(x[-1], t(potential_curves_quantiles), type = "l", 
-          lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-          main = "potential function", 
-          ylab = "", xlab = "population", col = "black")
-  matplot(x[-1], potential_curves, type = "l", lty = 1, 
-          col = scales::alpha("black", alpha), lwd = 2, add = T)
-  lines(x[-1], true_potential, lwd = 2, col = "darkred")
-  rug(obs_y)
-  matplot(x, -t(dpotential_curves_quantiles), type = "l", 
-          lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-          ylim = ylim_dpotential,
-          main = "derivative of potential function", 
-          ylab = "", xlab = "population", col = "black")
-  matplot(x, -dpotential_curves, type = "l", lty = 1,
-          col = scales::alpha("black", alpha), lwd = 2, add = T)
-  lines(x, -true_dpotential, lwd = 2, col = "darkred")
-  abline(h = 0, lwd = 2, lty = 3)
-  rug(obs_y)
+  if(which_plot == "both") layout(matrix(1:2, 1, 2))
+  if(which_plot %in% c("potential", "both")){
+    if(is.null(main)) main <- "potential function"
+    matplot(x[-1], t(potential_curves_quantiles), type = "l", 
+            lty = c(2, 1, 2), lwd = c(1, 2, 1), 
+            main = main, ylim = ylim_potential,
+            ylab = "", xlab = "population", col = "black")
+    matplot(x[-1], potential_curves, type = "l", lty = 1, 
+            col = scales::alpha("black", alpha), lwd = 2, add = T)
+    lines(x[-1], true_potential, lwd = 2, col = "darkred")
+    rug(obs_y)
+  }
+  if(which_plot %in% c("grad", "both")){
+    if(is.null(main)) main <- "gradient of potential function"
+    matplot(x, -t(dpotential_curves_quantiles), type = "l", 
+            lty = c(2, 1, 2), lwd = c(1, 2, 1), 
+            ylim = ylim_grad, main = main, 
+            ylab = "", xlab = "population", col = "black")
+    matplot(x, -dpotential_curves, type = "l", lty = 1,
+            col = scales::alpha("black", alpha), lwd = 2, add = T)
+    lines(x, -true_dpotential, lwd = 2, col = "darkred")
+    abline(h = 0, lwd = 2, lty = 3)
+    rug(obs_y)
+  }
 }
 
 #' Plot realizations of the potential function and its derivative for the parametric model
@@ -124,14 +132,17 @@ plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
 #' @param probs 
 #' @param alpha 
 #' @param ylim_potential 
-#' @param ylim_dpotential 
+#' @param ylim_grad 
+#' @param which_plot \code{"potential"} for potential function, "grad" for negative gradient of potential function, or \code{"both"} for both
+#' @param main 
 #'
 #' @return
 #' @export
 plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_y = NULL,
                                       x = seq(0, 2, length.out = 1e2),
                                       probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
-                                      ylim_potential = NULL, ylim_dpotential = NULL){
+                                      ylim_potential = NULL, ylim_grad = NULL, 
+                                      which_plot = "both", main = NULL){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
   degree <- length(grep("beta", colnames(samples)))
   dpotential_curves <- apply(samples[subset, 1:degree], 1, function(row){
@@ -144,23 +155,28 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_
                                 H = true$H, Q = true$Q, K = true$K)
   true_potential <- potential(x = x, a = true$a, r = true$r, 
                               H = true$H, Q = true$Q, K = true$K)
-  layout(matrix(1:2, 1, 2))
-  matplot(x[-1], t(potential_curves_quantiles), type = "l", 
-          lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-          main = "potential function", ylim = ylim_potential,
-          ylab = "", xlab = "population", col = "black")
-  matplot(x[-1], potential_curves, type = "l", lty = 1, 
-          col = scales::alpha("black", alpha), lwd = 2, add = T)
-  lines(x[-1], true_potential, lwd = 2, col = "darkred")
-  rug(obs_y)
-  matplot(x, -t(dpotential_curves_quantiles), type = "l", 
-          lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-          ylim = ylim_dpotential,
-          main = "derivative of potential function", 
-          ylab = "", xlab = "population", col = "black")
-  matplot(x, -dpotential_curves, type = "l", lty = 1,
-          col = scales::alpha("black", alpha), lwd = 2, add = T)
-  lines(x, -true_dpotential, lwd = 2, col = "darkred")
-  abline(h = 0, lwd = 2, lty = 3)
-  rug(obs_y)
+  if(which_plot == "both") layout(matrix(1:2, 1, 2))
+  if(which_plot %in% c("potential", "both")){
+    if(is.null(main)) main <- "potential function"
+    matplot(x[-1], t(potential_curves_quantiles), type = "l", 
+            lty = c(2, 1, 2), lwd = c(1, 2, 1), 
+            main = main, ylim = ylim_potential,
+            ylab = "", xlab = "population", col = "black")
+    matplot(x[-1], potential_curves, type = "l", lty = 1, 
+            col = scales::alpha("black", alpha), lwd = 2, add = T)
+    lines(x[-1], true_potential, lwd = 2, col = "darkred")
+    rug(obs_y)
+  }
+  if(which_plot %in% c("grad", "both")){
+    if(is.null(main)) main <- "gradient of potential function"
+    matplot(x, -t(dpotential_curves_quantiles), type = "l", 
+            lty = c(2, 1, 2), lwd = c(1, 2, 1), 
+            ylim = ylim_grad, main = main, 
+            ylab = "", xlab = "population", col = "black")
+    matplot(x, -dpotential_curves, type = "l", lty = 1,
+            col = scales::alpha("black", alpha), lwd = 2, add = T)
+    lines(x, -true_dpotential, lwd = 2, col = "darkred")
+    abline(h = 0, lwd = 2, lty = 3)
+    rug(obs_y)
+  }
 }

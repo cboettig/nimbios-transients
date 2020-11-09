@@ -7,7 +7,7 @@ N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 H <- 0.38; Q <- 5
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
-as <- c(0.023)
+as <- c(0.0225)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
@@ -139,7 +139,8 @@ problem_combos <- which(unlist(lapply(model_compare, function(m) sum(is.na(unlis
 mean_ISE_ratio <- sapply(1:length(model_compare), function(i){
   model <- model_compare[[i]]
   n <- length(model$ISE) / 2
-  ## need to sort out a for general combinations [20201012HRS]
+  ## need to sort out a for general combinations [20201012HRS] 
+  ## UPDATE: not sure what I meant, but this seems fine [20201108HRS]
   stable_pop <- uniroot(f = dpotential, interval = c(1, 2), a = combos[i, 'a'], r = r,
                         H = H, Q = Q, K = K)$root
   ghost_pop <- optimize(f = dpotential, interval = c(0, 1), a = combos[i, 'a'], r = r,
@@ -188,7 +189,7 @@ legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
 
 matplot(unique(agg_summary_df$me), 
         t(matrix(agg_summary_df[, 'mean_ISE_ratio'][, 2], nrow = 4, ncol = 5)), type = "l",
-        ylim = 1.55 * c(-1, 1),
+        ylim = 1.6 * c(-1, 1),
         col = traj_colors, lwd = 3,
         ylab = "ratio of MISE (non-parametric / parametric)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
