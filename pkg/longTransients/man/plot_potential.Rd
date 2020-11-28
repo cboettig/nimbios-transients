@@ -15,7 +15,10 @@ plot_potential(
   ylim_potential = NULL,
   ylim_grad = NULL,
   which_plot = "both",
-  main = NULL
+  main = NULL,
+  xlab = "population",
+  ylab = "",
+  ...
 )
 }
 \arguments{

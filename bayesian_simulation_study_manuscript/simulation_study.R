@@ -155,14 +155,28 @@ ESS_diff <- unlist(sapply(model_compare, function(model){
   if(length(out) == 0) return(NA)
   return(out)
 }))
+ESS_param_median <- unlist(sapply(model_compare, function(model){
+  n <- length(model$ISE) / 2
+  out <- model$ESS['fit.median']
+  if(length(out) == 0) return(NA)
+  return(out)
+}))
+ESS_functional_median <- unlist(sapply(model_compare, function(model){
+  n <- length(model$ISE) / 2
+  out <- model$ESS['fit_functional.median']
+  if(length(out) == 0) return(NA)
+  return(out)
+}))
 summary_df <- data.frame(n_traj = apply(combos, 1, function(x) length(x$y_subset)[[1]]),
                          mean_ISE_ratio = mean_ISE_ratio,
                          ESS_diff = ESS_diff,
+                         ESS_param_median = ESS_param_median,
+                         ESS_functional_median = ESS_functional_median,
                          me = apply(combos, 1, function(x) x$sigma_me))
 # agg_summary_df <- aggregate(summary_df[, 2:3], 
 #                             list(n_traj = summary_df$n_traj, 
 #                                  me = summary_df$me), median, na.rm = T)
-agg_summary_df <- aggregate(summary_df[, 2:3], 
+agg_summary_df <- aggregate(summary_df[, 2:5], 
                             list(n_traj = summary_df$n_traj, 
                                  me = summary_df$me), quantile, na.rm = T, 
                             prob = c(0.25, 0.5, 0.75))
@@ -225,5 +239,44 @@ legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
 #       axes = F, xlab = "number of trajectories", ylab = "", 
 #       main = "ratio of MISE", col = viridisLite::viridis(1e2))
 # axis(1, unique(agg_summary_df$n_traj), lty = 0)
+## dev.off ----
+dev.off()
+## device ----
+pdf(paste0("fig/ESS_summary_plots_a_", gsub(".", "_", as, fixed = T), ".pdf"))
+## ESS absolute ----
+layout(matrix(1:2, 1, 2))
+traj_colors <- viridisLite::magma(4, end = 0.9)
+matplot(unique(agg_summary_df$me), 
+        t(matrix(agg_summary_df[, 'ESS_param_median'][, 2], nrow = 4, ncol = 5)), type = "l",
+        ylim = c(0, max(agg_summary_df[, c('ESS_param_median')])), 
+        col = traj_colors, lwd = 3, ylab = "ESS parametric",
+        xlab = "measurement error variance", xaxt = "n", ylog = T)
+for(n_traj in unique(agg_summary_df$n_traj)){
+  polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
+          c(agg_summary_df$ESS_param_median[agg_summary_df$n_traj == n_traj, 1],
+            rev(agg_summary_df$ESS_param_median[agg_summary_df$n_traj == n_traj, 3])),
+          col = scales::alpha(traj_colors[which(n_traj == unique(agg_summary_df$n_traj))], 0.3), 
+          border = NA)
+}
+axis(1, unique(agg_summary_df$me))
+legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
+       legend = unique(agg_summary_df$n_traj))
+##
+matplot(unique(agg_summary_df$me), 
+        t(matrix(agg_summary_df[, 'ESS_functional_median'][, 2], nrow = 4, ncol = 5)), type = "l",
+        ylim = c(0, max(agg_summary_df[, c('ESS_param_median', 'ESS_functional_median')])), 
+        col = traj_colors, lwd = 3, ylab = "ESS non-parametric",
+        xlab = "measurement error variance", xaxt = "n", ylog = T)
+for(n_traj in unique(agg_summary_df$n_traj)){
+  polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
+          c(agg_summary_df$ESS_functional_median[agg_summary_df$n_traj == n_traj, 1],
+            rev(agg_summary_df$ESS_functional_median[agg_summary_df$n_traj == n_traj, 3])),
+          col = scales::alpha(traj_colors[which(n_traj == unique(agg_summary_df$n_traj))], 0.3), 
+          border = NA)
+}
+axis(1, unique(agg_summary_df$me))
+legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
+       legend = unique(agg_summary_df$n_traj))
+title(main = "Median effective sample size", outer = T, line = -1)
 ## dev.off ----
 dev.off()

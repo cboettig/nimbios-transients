@@ -50,7 +50,7 @@ constants_fit_functional <- list(
 )
 ## seed, data, x_eval, n_iterations ----
 seed <- 1234
-n_iterations <- 1e4
+n_iterations <- 1e5
 n_iterations_functional <- n_iterations
 data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
 x_eval <- seq(0.2, 1.8, l = 2e2)
@@ -71,6 +71,46 @@ pdf(paste0("fig/posterior_trace_subset_", paste0(sort(y_subset), collapse = "_")
 ## trace plots ----
 plot_trace(fit$samples, true = inits_sim)
 plot_trace_functional(fit_functional$samples)
+## dev.off ----
+dev.off()
+## device ----
+pdf(paste0("fig/posterior_trace_subset_dpotential_", paste0(sort(y_subset), collapse = "_"), 
+           "_me_", substr(sigma_me, 3, 5), ".pdf"))
+## plot trace of dpotential at sample of populations ----
+x_selection <- c(seq(0.2, 1.8, l = 5), c(ghost_pop, stable_pop))
+dpotential_fit <- t(apply(fit$samples, 1, function(sample){
+  dpotential(x = x_selection, a = sample['a'], r = sample['r'],
+             H = sample['H'], Q = sample['Q'], K = sample['K'])
+}))
+layout(matrix(1:8, 4, 2))
+cols <- scales::alpha(c(rep(1, 5), "darkred", "darkorange"), 1)
+for(i in 1:7){
+  main_app <- ""
+  if(i == 6) main_app <- "(stable attractor)"
+  if(i == 7) main_app <- "(ghost attractor)"
+  plot(dpotential_fit[, i], type = "l", lty = 1, col = cols[i],
+       main = paste(round(x_selection[i], 2), main_app), 
+       ylab = expression(d*mu(t)/dt), xlab = "population")
+}
+corrplot::corrplot(cor(dpotential_fit))
+## dev.off ----
+dev.off()
+## device ----
+pdf(paste0("fig/posterior_trace_subset_dpotential_functional_", paste0(sort(y_subset), collapse = "_"), 
+           "_me_", substr(sigma_me, 3, 5), ".pdf"))
+layout(matrix(1:8, 4, 2))
+dpotential_functional <- t(apply(fit_functional$samples, 1, function(sample){
+  sapply(x_selection, dV, beta = sample[paste0('beta[', 1:5, ']')])
+}))
+for(i in 1:7){
+  main_app <- ""
+  if(i == 6) main_app <- "(stable attractor)"
+  if(i == 7) main_app <- "(ghost attractor)"
+  plot(dpotential_functional[, i], type = "l", lty = 1, col = cols[i],
+       main = paste(round(x_selection[i], 2), main_app), 
+       ylab = expression(d*mu(t)/dt), xlab = "population")
+}
+corrplot::corrplot(cor(dpotential_functional))
 ## dev.off ----
 dev.off()
 ## device ----

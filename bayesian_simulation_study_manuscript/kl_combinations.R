@@ -6,7 +6,7 @@ N <- 1e5; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 H <- 0.38; Q <- 5
 sigma_me <- 0.01
-a <- 0.023
+a <- 0.0225
 n_trajs <- c(1, 2, 5, 10)
 ## fit each number of traj once ----
 for(n_traj in n_trajs){

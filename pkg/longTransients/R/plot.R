@@ -83,7 +83,8 @@ plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NA,
                            x = seq(0, 2, length.out = 1e2),
                            probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
                            ylim_potential = NULL, ylim_grad = NULL,
-                           which_plot = "both", main = NULL){
+                           which_plot = "both", main = NULL,
+                           xlab = "population", ylab = "", ...){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
   dpotential_curves <- apply(samples[subset, ], 1, function(row){
     sapply(x, dpotential, a = row['a'], r = row['r'], 
@@ -101,8 +102,8 @@ plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NA,
     if(is.null(main)) main <- "potential function"
     matplot(x[-1], t(potential_curves_quantiles), type = "l", 
             lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-            main = main, ylim = ylim_potential,
-            ylab = "", xlab = "population", col = "black")
+            main = main, ylim = ylim_potential, col = "black",
+            ylab = ylab, xlab = xlab, ...)
     matplot(x[-1], potential_curves, type = "l", lty = 1, 
             col = scales::alpha("black", alpha), lwd = 2, add = T)
     lines(x[-1], true_potential, lwd = 2, col = "darkred")
@@ -112,8 +113,8 @@ plot_potential <- function(samples, n_subset = 400, true = NULL, obs_y = NA,
     if(is.null(main)) main <- "gradient of potential function"
     matplot(x, -t(dpotential_curves_quantiles), type = "l", 
             lty = c(2, 1, 2), lwd = c(1, 2, 1), 
-            ylim = ylim_grad, main = main, 
-            ylab = "", xlab = "population", col = "black")
+            ylim = ylim_grad, main = main, col = "black",
+            ylab = ylab, xlab = xlab, ...)
     matplot(x, -dpotential_curves, type = "l", lty = 1,
             col = scales::alpha("black", alpha), lwd = 2, add = T)
     lines(x, -true_dpotential, lwd = 2, col = "darkred")
@@ -142,7 +143,7 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_
                                       x = seq(0, 2, length.out = 1e2),
                                       probs = c(0.125, 0.5, 0.875), alpha = 2e-2,
                                       ylim_potential = NULL, ylim_grad = NULL, 
-                                      which_plot = "both", main = NULL){
+                                      which_plot = "both", main = NULL, xlab = "population"){
   subset <- sample(1:nrow(samples), min(n_subset, nrow(samples)))
   degree <- length(grep("beta", colnames(samples)))
   dpotential_curves <- apply(samples[subset, 1:degree], 1, function(row){
@@ -161,7 +162,7 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_
     matplot(x[-1], t(potential_curves_quantiles), type = "l", 
             lty = c(2, 1, 2), lwd = c(1, 2, 1), 
             main = main, ylim = ylim_potential,
-            ylab = "", xlab = "population", col = "black")
+            ylab = "", xlab = xlab, col = "black")
     matplot(x[-1], potential_curves, type = "l", lty = 1, 
             col = scales::alpha("black", alpha), lwd = 2, add = T)
     lines(x[-1], true_potential, lwd = 2, col = "darkred")
@@ -172,7 +173,7 @@ plot_potential_functional <- function(samples, n_subset = 400, true = NULL, obs_
     matplot(x, -t(dpotential_curves_quantiles), type = "l", 
             lty = c(2, 1, 2), lwd = c(1, 2, 1), 
             ylim = ylim_grad, main = main, 
-            ylab = "", xlab = "population", col = "black")
+            ylab = "", xlab = xlab, col = "black")
     matplot(x, -dpotential_curves, type = "l", lty = 1,
             col = scales::alpha("black", alpha), lwd = 2, add = T)
     lines(x, -true_dpotential, lwd = 2, col = "darkred")
