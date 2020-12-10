@@ -7,7 +7,7 @@ N <- 1e3; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 H <- 0.38; Q <- 5
 sigma_mes <- c(0.005, 0.01, 0.02, 0.04, 0.08)
-as <- c(0.0225)
+as <- c(0.023)
 ## define combinations of parameters ----
 y_subsets <- c(lapply(1, function(x) 1:N_trajectories_sim),
                lapply(1:5, function(x) sample(1:N_trajectories_sim, 5)),
@@ -181,14 +181,16 @@ agg_summary_df <- aggregate(summary_df[, 2:5],
                                  me = summary_df$me), quantile, na.rm = T, 
                             prob = c(0.25, 0.5, 0.75))
 ## device ----
-pdf(paste0("fig/ESS_ISE_summary_plots_a_", gsub(".", "_", as, fixed = T), ".pdf"))
+pdf(paste0("fig/ESS_ISE_summary_plots_a_", gsub(".", "_", as, fixed = T), ".pdf"), 
+    width = 8.5, height = 5)
 ## plot ----
 layout(matrix(1:2, 1, 2))
+par(mar = c(4.1, 5.1, 2.1, 2.1))
 traj_colors <- viridisLite::magma(4, end = 0.9)
 matplot(unique(agg_summary_df$me), 
         t(matrix(agg_summary_df[, 'ESS_diff'][, 2], nrow = 4, ncol = 5)), type = "l",
         ylim = c(0, max(agg_summary_df[, 'ESS_diff'])), col = traj_colors, lwd = 3,
-        ylab = "diff. in ESS (non-parametric - parametric)",
+        ylab = "diff. in ESS (non-param. - param.)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
 for(n_traj in unique(agg_summary_df$n_traj)){
   polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
@@ -199,13 +201,13 @@ for(n_traj in unique(agg_summary_df$n_traj)){
 }
 axis(1, unique(agg_summary_df$me))
 legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
-       legend = unique(agg_summary_df$n_traj))
-
+       legend = unique(agg_summary_df$n_traj), title = "no. traj.")
+text(-0.024, 5529, "(a)", xpd = T)
 matplot(unique(agg_summary_df$me), 
         t(matrix(agg_summary_df[, 'mean_ISE_ratio'][, 2], nrow = 4, ncol = 5)), type = "l",
         ylim = 1.6 * c(-1, 1),
         col = traj_colors, lwd = 3,
-        ylab = "ratio of MISE (non-parametric / parametric)",
+        ylab = "ratio of IMSE (non-param. / param.)",
         xlab = "measurement error variance", xaxt = "n", ylog = T)
 for(n_traj in unique(agg_summary_df$n_traj)){
   polygon(c(unique(agg_summary_df$me), rev(unique(agg_summary_df$me))), 
@@ -225,8 +227,8 @@ axis(1, unique(agg_summary_df$me))
 # }
 abline(h = 0)
 legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
-       legend = unique(agg_summary_df$n_traj))
-
+       legend = unique(agg_summary_df$n_traj), title = "no. traj.")
+text(-0.024, 2, "(b)", xpd = T)
 # image(unique(agg_summary_df$n_traj), unique(agg_summary_df$me), 
 #       zlim = c(min(agg_summary_df[, 'ESS_diff']), 0),
 #       matrix(agg_summary_df[, 'ESS_diff'], nrow = 4, ncol = 5),
@@ -242,9 +244,11 @@ legend("topright", lty = 1:4, col = traj_colors, lwd = 3, bty = "n",
 ## dev.off ----
 dev.off()
 ## device ----
-pdf(paste0("fig/ESS_summary_plots_a_", gsub(".", "_", as, fixed = T), ".pdf"))
+pdf(paste0("fig/ESS_summary_plots_a_", gsub(".", "_", as, fixed = T), ".pdf"),
+    width = 8.5, height = 5)
 ## ESS absolute ----
 layout(matrix(1:2, 1, 2))
+par(mar = c(4.1, 5.1, 2.1, 2.1))
 traj_colors <- viridisLite::magma(4, end = 0.9)
 matplot(unique(agg_summary_df$me), 
         t(matrix(agg_summary_df[, 'ESS_param_median'][, 2], nrow = 4, ncol = 5)), type = "l",

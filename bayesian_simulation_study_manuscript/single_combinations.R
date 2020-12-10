@@ -1,10 +1,11 @@
 ## libraries ----
+library(nimble)
 library(longTransients)
 library(parallel)
 ## parameter values, y_subset ----
-sigma_me <- 0.01
+sigma_me <- 0.04
 a <- 0.023
-y_subset <- 1:2
+y_subset <- 1
 combo <- list(sigma_me = sigma_me, a = a, y_subset = y_subset)
 ## load data ----
 y_subset_ind <- which(names(combo) == "y_subset")
@@ -55,42 +56,55 @@ n_iterations_functional <- n_iterations
 data <- list("y" = matrix(sim$obs_y[, y_subset], ncol = N_trajectories_fit))
 x_eval <- seq(0.2, 1.8, l = 2e2)
 ## fitting ----
-## fit parametric ----
-fit <- fit_mcmc(data = data, constants = constants_fit,
-                seed = seed, n_iterations = n_iterations)
-fit$sample_time
-save(fit, file = paste0("data/fit_parametric_", file_suffix, ".RData"))
-## fit functional ----
-fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional,
-                                      seed = seed, n_iterations = n_iterations_functional)
-fit_functional$sample_time
-save(fit_functional, file = paste0("data/fit_functional_", file_suffix, ".RData"))
+## fit/load parametric ----
+# fit <- fit_mcmc(data = data, constants = constants_fit,
+#                 seed = seed, n_iterations = n_iterations)
+# fit$sample_time
+# save(fit, file = paste0("data/fit_parametric_", file_suffix, ".RData"))
+load(file = paste0("data/fit_parametric_", file_suffix, ".RData"))
+## fit/load functional ----
+# fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional,
+#                                       seed = seed, n_iterations = n_iterations_functional)
+# fit_functional$sample_time
+# save(fit_functional, file = paste0("data/fit_functional_", file_suffix, ".RData"))
+load(file = paste0("data/fit_functional_", file_suffix, ".RData"))
 ## device ----
 pdf(paste0("fig/posterior_trace_subset_", paste0(sort(y_subset), collapse = "_"), 
            "_me_", substr(sigma_me, 3, 5), ".pdf"))
 ## trace plots ----
 plot_trace(fit$samples, true = inits_sim)
+## dev.off ----
+dev.off()
+## device ----
+pdf(paste0("fig/posterior_trace_functional_subset_", paste0(sort(y_subset), collapse = "_"), 
+           "_me_", substr(sigma_me, 3, 5), ".pdf"))
+## trace plots functional ----
 plot_trace_functional(fit_functional$samples)
 ## dev.off ----
 dev.off()
 ## device ----
 pdf(paste0("fig/posterior_trace_subset_dpotential_", paste0(sort(y_subset), collapse = "_"), 
            "_me_", substr(sigma_me, 3, 5), ".pdf"))
-## plot trace of dpotential at sample of populations ----
-x_selection <- c(seq(0.2, 1.8, l = 5), c(ghost_pop, stable_pop))
+## plot trace of dpotential at sample of populations [parametric] ----
+x_selection <- sort(c(0.2, 0.4, 0.8, 1, 1.4, 1.6, 1.8, c(ghost_pop, stable_pop)))
 dpotential_fit <- t(apply(fit$samples, 1, function(sample){
   dpotential(x = x_selection, a = sample['a'], r = sample['r'],
              H = sample['H'], Q = sample['Q'], K = sample['K'])
 }))
-layout(matrix(1:8, 4, 2))
-cols <- scales::alpha(c(rep(1, 5), "darkred", "darkorange"), 1)
-for(i in 1:7){
+layout(matrix(1:10, 5, 2))
+cols <- scales::alpha(c(rep(1, 2), "red", rep(1, 2), "blue", rep(1, 3)), 1)
+par(mar = c(4.1, 4.1, 2.1, 1.1))
+for(i in 1:9){
   main_app <- ""
+  if(i == 3) main_app <- "(ghost attractor)"
   if(i == 6) main_app <- "(stable attractor)"
-  if(i == 7) main_app <- "(ghost attractor)"
   plot(dpotential_fit[, i], type = "l", lty = 1, col = cols[i],
-       main = paste(round(x_selection[i], 2), main_app), 
-       ylab = expression(d*mu(t)/dt), xlab = "population")
+       main = paste("x(t) =", round(x_selection[i], 2), main_app), 
+       ylab = expression(d*mu(t)/dt), xlab = "iteration")
+  abline(h = dpotential(x = x_selection[i], a = inits_sim$a, 
+                        r = inits_sim$r, H = inits_sim$H, 
+                        Q = inits_sim$Q, K = inits_sim$K), 
+         lwd = 2, col = cols[i])
 }
 corrplot::corrplot(cor(dpotential_fit))
 ## dev.off ----
@@ -98,17 +112,23 @@ dev.off()
 ## device ----
 pdf(paste0("fig/posterior_trace_subset_dpotential_functional_", paste0(sort(y_subset), collapse = "_"), 
            "_me_", substr(sigma_me, 3, 5), ".pdf"))
-layout(matrix(1:8, 4, 2))
+## plot trace of dpotential at sample of populations [functional] ----
 dpotential_functional <- t(apply(fit_functional$samples, 1, function(sample){
   sapply(x_selection, dV, beta = sample[paste0('beta[', 1:5, ']')])
 }))
-for(i in 1:7){
+layout(matrix(1:10, 5, 2))
+par(mar = c(4.1, 4.1, 2.1, 1.1))
+for(i in 1:9){
   main_app <- ""
+  if(i == 3) main_app <- "(ghost attractor)"
   if(i == 6) main_app <- "(stable attractor)"
-  if(i == 7) main_app <- "(ghost attractor)"
   plot(dpotential_functional[, i], type = "l", lty = 1, col = cols[i],
-       main = paste(round(x_selection[i], 2), main_app), 
-       ylab = expression(d*mu(t)/dt), xlab = "population")
+       main = paste("x(t) =", round(x_selection[i], 2), main_app), 
+       ylab = expression(d*mu(t)/dt), xlab = "iteration")
+  abline(h = dpotential(x = x_selection[i], a = inits_sim$a, 
+                        r = inits_sim$r, H = inits_sim$H, 
+                        Q = inits_sim$Q, K = inits_sim$K), 
+         lwd = 2, col = cols[i])
 }
 corrplot::corrplot(cor(dpotential_functional))
 ## dev.off ----

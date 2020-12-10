@@ -53,11 +53,11 @@ plot_trace <- function(samples, true = NULL){
 #' @return NULL
 #' @export
 plot_trace_functional <- function(samples){
-  layout(matrix(c(1:3, 3), 2, 2), widths = c(1, 2))
+  layout(matrix(c(1:3), 3, 1), heights = c(1, 1, 1.2))
   variables <- c(paste0("beta[", 1:5, "]"), "sigma", "sigma_me")
-  matplot(samples[, paste0("beta[", 1:5, "]")], type = "l")
-  matplot(samples[, c("sigma", "sigma_me")], type = "l", lty = 1)
-  legend("bottomright", col = 1:2, lty = 1, bty = "n", 
+  matplot(samples[, paste0("beta[", 1:5, "]")], type = "l", ylab = "beta")
+  matplot(samples[, c("sigma", "sigma_me")], type = "l", lty = 1, ylab = "")
+  legend("right", col = 1:2, lty = 1, bty = "n", 
          legend = c(expression(sigma), expression(sigma[me])))
   corrplot::corrplot(cor(samples[, variables]))
   return(NULL)
