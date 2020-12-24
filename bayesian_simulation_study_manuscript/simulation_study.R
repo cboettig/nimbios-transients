@@ -173,9 +173,6 @@ summary_df <- data.frame(n_traj = apply(combos, 1, function(x) length(x$y_subset
                          ESS_param_median = ESS_param_median,
                          ESS_functional_median = ESS_functional_median,
                          me = apply(combos, 1, function(x) x$sigma_me))
-# agg_summary_df <- aggregate(summary_df[, 2:3], 
-#                             list(n_traj = summary_df$n_traj, 
-#                                  me = summary_df$me), median, na.rm = T)
 agg_summary_df <- aggregate(summary_df[, 2:5], 
                             list(n_traj = summary_df$n_traj, 
                                  me = summary_df$me), quantile, na.rm = T, 

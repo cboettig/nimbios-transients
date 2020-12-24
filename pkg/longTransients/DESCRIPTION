@@ -1,7 +1,7 @@
 Package: longTransients
 Type: Package
 Title: Package to reproduce results in Reimer et al. (2021)
-Version: 1.0
+Version: 1.1
 Date: 2020-09-21
 Author: Henry R. Scharf
 Maintainer: Henry R. Scharf <hscharf@sdsu.edu>

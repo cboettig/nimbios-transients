@@ -1,4 +1,5 @@
 ## libraries ----
+library(nimble)
 library(longTransients)
 library(parallel)
 ## parameter values, y_subset ----
@@ -6,11 +7,11 @@ N <- 1e5; N_trajectories_sim <- 10
 r <- 0.05; K <- 2
 H <- 0.38; Q <- 5
 sigma_me <- 0.01
-a <- 0.0225
+a <- 0.023
 n_trajs <- c(1, 2, 5, 10)
 ## fit each number of traj once ----
 for(n_traj in n_trajs){
-  y_subset <- 1:n_traj
+  y_subset <- sort(sample(1:10, n_traj))
   combo <- list(sigma_me = sigma_me, a = a, y_subset = y_subset)
   ## load data ----
   y_subset_ind <- which(names(combo) == "y_subset")
@@ -66,29 +67,4 @@ for(n_traj in n_trajs){
                   seed = seed, n_iterations = n_iterations)
   fit$sample_time
   save(inits_sim, constants_fit, fit, file = paste0("data/fit_parametric_", file_suffix, ".RData"))
-  # ## fit functional ----
-  # fit_functional <- fit_mcmc_functional(data = data, constants = constants_fit_functional,
-  #                                       seed = seed, n_iterations = n_iterations_functional)
-  # fit_functional$sample_time
-  # save(inits_sim, constants_fit_functional, fit_functional, 
-  #      file = paste0("data/fit_functional_", file_suffix, ".RData"))
-  # ## device ----
-  # pdf(paste0("fig/posterior_potentials_subset_", paste0(sort(y_subset), collapse = "_"), 
-  #            "_me_", substr(sigma_me, 3, 5), ".pdf"),
-  #     width = 10)
-  # ## compare_potential curves ----
-  # plot_potential(samples = fit$samples, true = inits_sim, x = x_eval,
-  #                ylim_dpotential = 0.02 * c(-1, 1))
-  # # points(c(stable_pop, ghost_pop),
-  # #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
-  # #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
-  # #        lwd = 2, col = "darkred", cex = 2)
-  # plot_potential_functional(samples = fit_functional$samples, true = inits_sim, 
-  #                           x = x_eval, ylim_dpotential = 0.02 * c(-1, 1))
-  # # points(c(stable_pop, ghost_pop),
-  # #        dpotential(c(stable_pop, ghost_pop), a = inits_sim$a, r = inits_sim$r,
-  # #                   H = inits_sim$H, Q = inits_sim$Q, K = inits_sim$K),
-  # #        lwd = 2, col = "darkred", cex = 2)
-  # ## dev.off ----
-  # dev.off()
 }
